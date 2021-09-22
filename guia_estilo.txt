@@ -1,0 +1,71 @@
+A continuación se detalla la guía de estilo simple que utilizaremos en todas las prácticas de C. 
+
+Utiliza nombres de variables, constantes y funciones claras. Utiliza "_" para variables multi-palabra. Utiliza siempre minúsculas. Por ejemplo, utiliza sensor_temperatura en vez de SensorTemperatura. Sólo se permite variables de un solo carácter si dicha variable se utiliza para iterar en un bucle.
+Utilizaremos siempre el inglés para nombrar variables, constantes, funciones, etc.
+Utiliza una indentación correcta (4 espacios). Configura tu editor correctamente.
+Si las variables tienen el mismo tipo, declaralas en la misma línea si es posible.
+Siempre deja una línea en blanco entre la declaración de variables y la primera linea de código de una función.
+El { de apertura de sentencia condiciones, repetitivas o funciones deben escribirse en la misma linea.
+Define valores como constantes cuando sea necesario, no utilices variables para constantes. No hardcodes números o literales en vuestro código.
+Constantes definidas con #define debe ser siempre en mayúsculas, #define MAX_LEN 10
+Siempre debes dejar un espacio en tu código entre operaciones (correcto: x = 5 + 7, incorrecto: x=5+7)
+Siempre deja un espacio después de una coma (definición de variables)
+Usa "{" "}" adecuadamente, evita bucles y condicionales sin ellos.
+Utiliza paréntesis con claridad, especialmente con operaciones.
+Evitar variables globales cuando no son necesarias.
+Para acceder a punteros siempre utilizaremos p->member, en lugar de (*p).member
+Deberás siempre evitar líneas de código mayores de 80 caracteres.
+Evita duplicación de código
+
+
+
+Ejempo:
+
+
+
+/*
+  Ejemplo código C 
+  Sistemas Distribuidos y Concurrentes
+ */
+
+#include <stdio.h>
+
+#define MAX_ERROR 100
+
+int main() {
+   int temperature = 0, error;
+   char sensor_state;
+   
+   printf("Enter State of Sensor (A/D): ");
+   scanf("%c", &sensors_state);
+
+   printf("Enter temperature: ");
+   scanf("%d", &temperature);
+
+   printf("Enter error (+- 1 degree): ");
+   scanf("%d", &error);
+
+   if (sensor_state == 'A') {
+      printf("Sensor enable\n");
+   } else {
+      printf("Sensor disable\n");
+   }
+
+   do {
+      if (temperature % 2 == 0) {
+         printf("Even temperature %d\n", temperature);
+      }
+      temperature--;
+   } while (temperature >= 0);
+
+
+   if (error > 0 && error <= 15) {
+      printf("Type1\n");
+   } else if (error > 15 && error <= 30) {
+      printf("Type2\n");
+   } else {
+      printf("Other type\n");
+   }
+
+   return 0;
+}
