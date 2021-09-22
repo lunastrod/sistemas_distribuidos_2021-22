@@ -4,11 +4,19 @@
 
 #define PORT 8080
 
+/*
+socket
+connect
 
+recv
+send
+
+close
+*/
 
 int main() {
     // printf() displays the string inside quotation
-    printf("Hello, World!\n");
+    printf("clienteconne\n");
 
     struct sockaddr_in servaddr;
     servaddr.sin_family = AF_INET;
@@ -16,10 +24,9 @@ int main() {
     servaddr.sin_port = htons(PORT);
 
     int my_socket = socket(AF_INET, SOCK_STREAM, 0);
+    int len;
 
-    int res = bind( my_socket,
-                (struct sockaddr *) &servaddr,
-                sizeof(servaddr)) == -1 ;
+    int connect(int sockfd, (struct sockaddr *) &servaddr, );
     
     return 0;
 }
