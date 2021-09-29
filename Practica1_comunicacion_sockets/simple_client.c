@@ -15,8 +15,7 @@ close
 */
 
 int main() {
-    // printf() displays the string inside quotation
-    printf("clienteconne\n");
+    printf("client\n");
 
     struct sockaddr_in servaddr;
     servaddr.sin_family = AF_INET;

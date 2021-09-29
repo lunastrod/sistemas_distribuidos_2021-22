@@ -5,6 +5,10 @@
 #define PORT 8080
 
 /*
+
+
+
+
 socket
 bind
 listen
@@ -17,9 +21,9 @@ close
 */
 
 int main() {
-    //int server_fd;//lo que devuelve socket
+    //int server_fd;
 
-    printf("servidor\n");
+    printf("server\n");
 
     struct sockaddr_in servaddr;
     servaddr.sin_family = AF_INET;
