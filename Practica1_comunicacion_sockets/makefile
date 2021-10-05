@@ -11,4 +11,7 @@ nonblock_client: nonblock_client.c
 nonblock_server: nonblock_server.c
 	gcc -o nonblock_server nonblock_server.c
 
-all: nonblock_server nonblock_client simple_server simple_client
+complex_server: complex_server.c
+	gcc -o complex_server complex_server.c -lpthread
+
+all: nonblock_server nonblock_client simple_server simple_client complex_server
