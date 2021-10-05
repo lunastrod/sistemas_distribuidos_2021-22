@@ -1,46 +1,11 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 #include <signal.h>
-
-#include <arpa/inet.h>//temp
-
-/*
-socket
-connect
-
-recv
-send
-
-close
-*/
-
-/*
-int main() {
-    printf("client\n");
-
-    struct sockaddr_in servaddr;
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(PORT);
-
-    int my_socket = socket(AF_INET, SOCK_STREAM, 0);
-    int len;
-
-    int connect(int sockfd, (struct sockaddr *) &servaddr, );
-    
-    return 0;
-}
-*/
-
-
-
 
 #define MAX_BUFF 80
 #define PORT 8080
@@ -48,40 +13,31 @@ int main() {
 
 static volatile int running = 1;
 
-void intHandler(int sig) {
+void int_handler(int sig) {
     running = 0;
 }
 
-
-void sendRecv(int sockfd)
+void send_recv(int sockfd)
 {
     char buff[MAX_BUFF];
 
     while (running) {
         bzero(buff, sizeof(buff));
         printf(">");
+        fflush(stdout);
 
-        for(int i=0; i<MAX_BUFF; i++){
-            char in=getchar();
-            if(in=='\n'){
-                break;
-            }
-            buff[i]=in;
-        }
-
+        fgets(buff, MAX_BUFF, stdin);
         send(sockfd, buff, sizeof(buff), 0);
+
         bzero(buff, sizeof(buff));
         recv(sockfd, buff, sizeof(buff),0);
         printf("+++%s\n", buff);
+        fflush(stdout);
 
-        signal(SIGINT, intHandler);
+        signal(SIGINT, int_handler);
     }
-    printf("DEBUG:exit");
 }
 
-
-
-   
 int main()
 {
     int sockfd, connfd;
@@ -107,6 +63,6 @@ int main()
     else
         printf("connected to the server...\n");
    
-    sendRecv(sockfd);
+    send_recv(sockfd);
     close(sockfd);
 }

@@ -2,96 +2,40 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
-
 #include <netdb.h>
 #include <sys/types.h>
-
-//#define PORT 8080
-
-/*
-socket
-bind
-listen
-accept
-
-recv
-send
-
-close
-*/
-/*
-int main() {
-    //int server_fd;
-
-    printf("server\n");
-
-    struct sockaddr_in servaddr;
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(PORT);
-
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-
-    int res = bind( sockfd,
-                (struct sockaddr *) &servaddr,
-                sizeof(servaddr)) == -1 ;
-
-
-    res = listen(sockfd, 1);
-
-    struct sockaddr_in sock_cli;
-    int len;
-    int conn_fd = accept(sockfd,(struct sockaddr *)&sock_cli, &len);
-
-
-    
-    return 0;
-}
-*/
-
 
 #define MAX_BUFF 80
 #define PORT 8080
 #define SA struct sockaddr
 
-// Function designed for chat between client and server.
-
 static volatile int running = 1;
 
-void intHandler(int sig) {
+void int_handler(int sig) {
     running = 0;
 }
 
-void sendRecv(int sockfd)
+void send_recv(int sockfd)
 {
     char buff[MAX_BUFF];
     while (running){
         bzero(buff, sizeof(buff));
-        printf(">");
         recv(sockfd, buff, sizeof(buff),0);
         printf("+++%s\n", buff);
-
+        fflush(stdout);
 
         bzero(buff, sizeof(buff));
         printf(">");
+        fflush(stdout);
 
-        for(int i=0; i<MAX_BUFF; i++){
-            char in=getchar();
-            if(in=='\n'){
-                break;
-            }
-            buff[i]=in;
-        }
+        fgets(buff, MAX_BUFF, stdin);
 
         send(sockfd, buff, sizeof(buff), 0);
-        signal(SIGINT, intHandler);
+        signal(SIGINT, int_handler);
     }
-    printf("DEBUG:exit");
 }
    
 int main(){
@@ -128,13 +72,13 @@ int main(){
    
     connfd = accept(sockfd, (SA*)&cli, &len);
     if (connfd < 0) {
-        printf("server accept failed...\n");
+        printf("server accept failed\n");
         exit(0);
     }
     else
         printf("server accept the client...\n");
    
-    sendRecv(connfd);
+    send_recv(connfd);
    
     close(sockfd);
 }

@@ -14,4 +14,7 @@ nonblock_server: nonblock_server.c
 complex_server: complex_server.c
 	gcc -o complex_server complex_server.c -lpthread
 
-all: nonblock_server nonblock_client simple_server simple_client complex_server
+modsimple_client: modsimple_client.c
+	gcc -o modsimple_client modsimple_client.c
+
+all: nonblock_server nonblock_client simple_server simple_client complex_server modsimple_client

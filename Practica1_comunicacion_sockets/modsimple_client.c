@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 #include <signal.h>
 
@@ -13,34 +11,24 @@
 #define PORT 8080
 #define SA struct sockaddr
 
-static volatile int running = 1;
-void int_handler(int sig) {
-    running = 0;
-}
-
 void send_recv(int sockfd)
 {
     char buff[MAX_BUFF];
 
-    while (running) {
         bzero(buff, sizeof(buff));
         printf(">");
         fflush(stdout);
 
-        fgets(buff, MAX_BUFF, stdin);
-        
+        snprintf(buff, MAX_BUFF, "Hello server!");
         send(sockfd, buff, sizeof(buff), 0);
 
         bzero(buff, sizeof(buff));
-        recv(sockfd, buff, sizeof(buff), MSG_DONTWAIT);
-
+        recv(sockfd, buff, sizeof(buff),0);
         printf("+++%s\n", buff);
         fflush(stdout);
 
-        signal(SIGINT, int_handler);
-    }
 }
-   
+
 int main()
 {
     int sockfd, connfd;
