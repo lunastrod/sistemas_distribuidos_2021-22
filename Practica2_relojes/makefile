@@ -7,7 +7,7 @@ OBJS1 = proxy.o p1.o
 OBJS2 = proxy.o p2.o
 OBJS3 = proxy.o p3.o
 #flags del compilador
-CFLAGS = -Wall -lpthread
+CFLAGS = -lpthread
 
 .PHONY: all
 all: $(TARGET1) $(TARGET2) $(TARGET3)

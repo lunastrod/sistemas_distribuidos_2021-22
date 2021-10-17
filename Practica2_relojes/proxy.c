@@ -12,7 +12,7 @@ void set_ip_port (char* ip, unsigned int port){
 // Obtiene el valor del reloj de lamport.
 // Utilízalo cada vez que necesites consultar el tiempo.
 int get_clock_lamport(){
-
+    return 0;
 }
 // Notifica que está listo para realizar el apagado (READY_TO_SHUTDOWN)
 void notify_ready_shutdown(){
