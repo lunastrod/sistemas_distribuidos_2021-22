@@ -29,3 +29,12 @@ int get_clock_lamport();
 void notify_ready_shutdown();
 // Notifica que va a realizar el shutdown correctamente (SHUTDOWN_ACK)
 void notify_shutdown_ack();
+
+
+
+//el servidor responde que el cliente puede apagarse (SHUTDOWN_NOW)
+void reply_shutdown_now();
+//setup del servidor
+void setup_server();
+//setup del cliente
+void connect_to_server();

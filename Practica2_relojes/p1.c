@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-
+/*
 #define MAX_BUFF 80
 #define PORT 8080
 #define SA struct sockaddr
@@ -41,12 +41,6 @@ void send_recv(int sockfd)
 
         lcl++;
         sleep(1);
-
-
-
-
-
-
 
 
 
@@ -93,4 +87,14 @@ int main() {
     send_recv(sockfd);
     close(sockfd);
     return 0;
+}
+
+*/
+
+int main(){
+    set_name("p1");
+    set_ip_port("asdasd",8080);
+    connect_to_server();
+    notify_ready_shutdown();
+    notify_shutdown_ack();
 }

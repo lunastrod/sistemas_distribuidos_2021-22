@@ -15,14 +15,7 @@
 #define PORT 8080
 #define SA struct sockaddr
 
-
-
-int maximum(int a1, int a2){
-    if(a1>a2)
-        return a1;
-    else
-        return a2;
-}
+/*
 
 void send_recv(int sockfd)
 {
@@ -106,4 +99,16 @@ int main() {
    
     close(sockfd);
     return 0;
+}
+
+*/
+
+int main(){
+    set_name("p2");
+    set_ip_port("asdasd",8080);
+    setup_server();
+    while(1){
+        reply_shutdown_now();
+    }
+    printf("por que te sales");
 }
