@@ -58,6 +58,78 @@ void create_msg(struct message * msg, int action){
     print_msg(*msg,1);
 }
 
+//setup del servidor
+void setup_server(){
+    //int _sockfd;
+    int connfd, len;
+    struct sockaddr_in servaddr, cli;
+   
+    _sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (_sockfd == -1) {
+        printf("socket creation failed\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created...\n");
+    bzero(&servaddr, sizeof(servaddr));
+   
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(_port);
+   
+    if ((bind(_sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) {
+        printf("socket bind failed\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully binded..\n");
+   
+    if ((listen(_sockfd, 5)) != 0) {
+        printf("Listen failed\n");
+        exit(0);
+    }
+    else
+        printf("Server listening...\n");
+    len = sizeof(cli);
+   
+    connfd = accept(_sockfd, (SA*)&cli, &len);
+    if (connfd < 0) {
+        printf("server accept failed\n");
+        exit(0);
+    }
+    else
+        printf("server accept the client...\n");
+}
+//setup del cliente
+void connect_to_server(){
+    //int _sockfd
+    int connfd;
+    struct sockaddr_in servaddr, cli;
+   
+    _sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (_sockfd == -1) {
+        printf("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created...\n");
+    bzero(&servaddr, sizeof(servaddr));
+   
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(_port);
+   
+    if (connect(_sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
+        printf("connection with the server failed\n");
+        exit(0);
+    }
+    else
+        printf("connected to the server...\n");
+}
+
+
+//----------------------------------------------------------------------------------------------
+
 // Establece el nombre del proceso (para los logs y trazas)
 void set_name (char name[2]){
     snprintf (_process_name, 3, "%s", name);
