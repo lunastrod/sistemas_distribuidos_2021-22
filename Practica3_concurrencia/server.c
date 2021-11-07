@@ -21,6 +21,8 @@ enum{
 unsigned int counter=0;
 FILE* server_output;
 
+
+
 void attend_clients(){
     while(1){
         accept_new_client();
