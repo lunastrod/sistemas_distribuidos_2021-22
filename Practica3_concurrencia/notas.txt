@@ -1,1 +1,4 @@
 http://faculty.juniata.edu/rhodes/os/ch5d.htm
+
+hambruna
+https://arxiv.org/pdf/1309.4507.pdf

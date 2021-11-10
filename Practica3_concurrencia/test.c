@@ -3,29 +3,35 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define NUM_THREADS 10
+#define NUM_THREADS 100
 #define MAX_COUNT 100000
 
 long counter=0;
 sem_t write_sem;
 sem_t read_sem;
 sem_t new_readers_sem;
+sem_t ratio_sem;
 
 int readers=0;
 int writers=0;
+int ratio=0;
 sem_t readers_mutex;
 sem_t writers_mutex;
-
 
 void read_rp(int id){
     //reader needs mutually exclusive access while
     //manipulating “readers” variable
+    //fprintf(stderr,"P%d quiero leer ratio_sem\n",id);
+    //sem_wait(&ratio_sem);
+    fprintf(stderr,"P%d quiero leer readers_mutex\n",id);
     sem_wait(&readers_mutex);
     readers++;
+    ratio++;
     if(readers==1){
         //If this reader is the first reader, it has to 
         //wait if there is an active writer (which has
         //exclusive access to the database)
+        fprintf(stderr,"P%d quiero leer write_sem\n",id);
         sem_wait(&write_sem);
         //If other readers come along while the first 
         //one is waiting, they wait at the sem_wait(&readers_mutex);
@@ -33,8 +39,9 @@ void read_rp(int id){
     //reader does not need mutually exclusive access 
     //while reading database
     sem_post(&readers_mutex);
+    //sem_post(&ratio_sem);
 
-
+    sleep(1);
     printf("P%d counter:%ld\n",id,counter);
 
     sem_wait(&readers_mutex);
@@ -50,19 +57,24 @@ void read_rp(int id){
 void write_rp(int id){
     //If there is an active writer/reader
     //this writer has to wait
+    //fprintf(stderr,"P%d quiero escribir ratio_sem\n",id);
+    //sem_wait(&ratio_sem);
+    fprintf(stderr,"P%d quiero escribir write_sem\n",id);
     sem_wait(&write_sem);
+    sleep(1);
+    ratio=0;
     counter++;
     printf("P%d counter++:%ld\n",id,counter);
     sem_post(&write_sem);
+    //sem_post(&ratio_sem);
     //When the writer finishes, it wakes up writer/reader
 }
 
 
 void read_wp(int id){
-    fprintf(stderr,"P%d quiero leer\n",id);
-    fprintf(stderr,"P%d cola new_readers_sem de leer\n",id);
+    fprintf(stderr,"P%d quiero leer cola new_readers_sem\n",id);
     sem_wait(&new_readers_sem);
-    fprintf(stderr,"P%d cola readsem de leer\n",id);
+    fprintf(stderr,"P%d quiero leer cola readsem\n",id);
     sem_wait(&read_sem);
         sem_wait(&readers_mutex);
             readers++;
@@ -112,11 +124,16 @@ void *count(void *ptr) {
     int id=(int)ptr;
     //if(id==13||id==25||id==79){
     
-    if(id%2==0){
-        write_wp(id);
+    if(id==20){
+        //while(1){
+            write_wp(id);
+        //}
     }
     else{
-        read_wp(id);
+        //while(1){
+            read_wp(id);
+        //}
+        
     }
     return NULL;
 }
@@ -128,6 +145,7 @@ int main (int argc, char* argv[]) {
     sem_init(&readers_mutex, 0, 1);
     sem_init(&writers_mutex, 0, 1);
     sem_init(&new_readers_sem, 0, 1);
+    sem_init(&ratio_sem,0,1);
 
     for (int i=0; i<NUM_THREADS; i++){
         pthread_create(&threads[i],NULL, count, (void *)i);
