@@ -48,7 +48,7 @@ void read_rp(int id){
     readers--;
     if(readers==0){
         //When the last reader finishes, if there are
-        //waiting writers, it must wake one up
+        //waiting writers, it must wake one up 
         sem_post(&write_sem);
     }
     sem_post(&readers_mutex);
