@@ -15,34 +15,48 @@ enum{
 };
 
 enum{
-    MAX_COUNTER_LENGTH=11
+    MAX_COUNTER_LENGTH=11,
+    MAX_THREADS=5
 }; 
 
 unsigned int counter=0;
 FILE* server_output;
 
+sem_t max_threads_sem;
 
+
+
+void * client_func(void *ptr){
+    sleep(1);
+    enum operations req = recv_request();
+    fprintf(stderr,"debug req: %d\n", req);
+    if(req==WRITE){
+        fprintf(stderr,"debug write\n");
+        counter++;
+        fprintf(server_output,"%u ",counter);
+        fflush(server_output);
+        send_response(req,counter,50);
+    }
+    if(req==READ){
+        send_response(req,counter,50);
+    }
+    
+    sem_post(&max_threads_sem);
+    return NULL;
+}
 
 void attend_clients(){
+    pthread_t ignore=0;//ignoro el id del thread porque nunca voy a salir del bucle
+
+    sem_init(&max_threads_sem,0,MAX_THREADS);
+    
     while(1){
         accept_new_client();
-        enum operations req = recv_request();
-
-        fprintf(stderr,"debug req: %d\n", req);
-        if(req==WRITE){
-            fprintf(stderr,"debug write\n");
-            counter++;
-            fprintf(server_output,"%u ",counter);
-            fflush(server_output);
-            send_response(req,counter,50);
-            //fprintf(stderr,"debug ??????' a donde vas\n");
-        }
-        if(req==READ){
-            //fprintf(stderr,"debug read\n");
-            send_response(req,counter,50);
-        }
-        
-        //fprintf(stderr,"debug patata\n");
+        sem_wait(&max_threads_sem);
+        int sval;
+        sem_getvalue(&max_threads_sem, &sval);
+        fprintf(stderr,"Semaphore value: %d\n", sval);
+        pthread_create(&ignore, NULL, client_func, NULL);
     }
 }
 
