@@ -16,7 +16,7 @@ enum{
 
 enum{
     MAX_COUNTER_LENGTH=11,
-    MAX_THREADS=2
+    MAX_THREADS=5
 }; 
 
 unsigned int counter=0;
@@ -27,8 +27,7 @@ sem_t max_threads_sem;
 
 
 void * client_func(void *ptr){
-    accept_new_client();
-
+    sleep(1);
     enum operations req = recv_request();
     fprintf(stderr,"debug req: %d\n", req);
     if(req==WRITE){
@@ -52,6 +51,7 @@ void attend_clients(){
     sem_init(&max_threads_sem,0,MAX_THREADS);
     
     while(1){
+        accept_new_client();
         sem_wait(&max_threads_sem);
         int sval;
         sem_getvalue(&max_threads_sem, &sval);
