@@ -24,13 +24,11 @@ void setup_client(char* ip, int port) {
     servaddr.sin_port = htons(port);
 
     // connect client to server
-    if ((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0) {
-        fprintf(stderr,"Connection with the server failed...\n");
-        exit(1);
+    while((connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0) {
+        fprintf(stderr,"Connection with the server failed, retrying...\n");
+        sleep(1);
     }
-    else {
-        printf("Client conected to server  \n");
-    }
+    printf("Client conected to server  \n");
 }
 
 //depends: connfd
