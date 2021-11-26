@@ -1,9 +1,8 @@
 #include "proxy.h"
 #include <signal.h>//SIGINT
-#include <sys/select.h>
 
 enum{
-    PORT=8081
+    PORT=8080
 };
 
 static volatile int running = 1;
@@ -15,7 +14,13 @@ int main(){
     int sockfd=setup_server(PORT);
     int connfd=accept_new_client(sockfd);
     while (running){
-        send_recv(connfd);
+        recv_print_str(connfd);
+        signal(SIGINT, int_handler);
+        if(!running){
+            break;
+        }
+        
+        stdin_send_str(connfd);
         signal(SIGINT, int_handler);
         if(!running){
             break;
