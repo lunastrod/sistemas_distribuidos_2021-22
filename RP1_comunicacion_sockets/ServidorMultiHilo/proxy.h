@@ -7,6 +7,13 @@
 //sockets
 #include <arpa/inet.h>
 
+/*
+MACRO PARA PONER TRAZAS
+usage: TDEB("ip:%s port%d",ip,port);
+asi son mas faciles de quitar para hacer la entrega
+*/
+#define TDEB(...) fprintf(stderr,"DEBUG: "__VA_ARGS__); fprintf(stderr,"\n")
+
 enum{
     BUFF_SIZE=256
 };

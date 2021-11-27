@@ -52,7 +52,7 @@ int setup_server(int port){
 
     // bind to socket
     if ((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) {
-        err(1,"Socket bind failed\n");
+        err(1,"Socket bind failed");
     }
     else{
         printf("Socket successfully binded\n");
@@ -60,7 +60,7 @@ int setup_server(int port){
     
     //listen to clients
     if ((listen(sockfd, 100)) != 0) {
-        err(1,"Listen failed\n");
+        err(1,"Listen failed");
     } 
     else {
         printf("Server listening\n");
@@ -72,7 +72,7 @@ int setup_server(int port){
 int accept_new_client(int sockfd){
     int connfd = accept(sockfd, (struct sockaddr*)NULL, NULL); //Acepta un nuevo cliente
     if (connfd < 0) {
-        warn("Server accept failed\n");
+        err(1,"Server accept failed");
     } else {
         printf("Server accepts the client\n");
     }
@@ -85,3 +85,4 @@ void close_server(int sockfd){
         err(1,"Close failed\n");
     }
 }
+

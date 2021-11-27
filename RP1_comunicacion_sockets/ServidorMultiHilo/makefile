@@ -5,7 +5,7 @@ TARGET2 = server
 OBJS1 = client.o proxy.o
 OBJS2 = server.o proxy.o
 #flags del compilador
-CFLAGS = -Wall -lssl -lcrypto
+CFLAGS = -Wall -lpthread
 
 .PHONY: all
 all: $(TARGET1) $(TARGET2)

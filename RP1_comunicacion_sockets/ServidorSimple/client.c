@@ -1,6 +1,15 @@
 #include "proxy.h"
 #include <signal.h>//SIGINT
 
+enum{
+    PORT=8080
+};
+
+static volatile int running = 1;
+void int_handler(int sig) {
+    running = 0;
+}
+
 void recv_print_str(int sockfd){
     char buff[BUFF_SIZE];
     recv(sockfd, buff, BUFF_SIZE, 0);
@@ -16,18 +25,9 @@ void stdin_send_str(int sockfd){
     send(sockfd, buff, BUFF_SIZE, 0);
 }
 
-enum{
-    PORT=8080
-};
-
-static volatile int running = 1;
-void int_handler(int sig) {
-    running = 0;
-}
-
 int main(){
     int sockfd;
-    sockfd=setup_client("127.0.0.1",PORT);
+    sockfd=setup_client("fe80::9540:9480:f3f:8bd4",PORT);
 
     while (running){
 

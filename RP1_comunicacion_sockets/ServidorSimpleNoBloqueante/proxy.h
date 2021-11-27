@@ -23,3 +23,5 @@ void close_client(int sockfd);
 int setup_server(int port);
 int accept_new_client(int sockfd);
 void close_server(int sockfd);
+
+void send_recv(int sockfd);
