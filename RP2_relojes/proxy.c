@@ -1,5 +1,17 @@
 #include "proxy.h"
 
+// Establece el nombre del proceso (para los logs y trazas)
+void set_name (char name[2]){
+    memcpy(debug_name,name,3-1);
+    debug_name[3-1]='\0';
+}
+// Establecer ip y puerto (para los logs y trazas)
+void set_ip_port (char* ip, unsigned int port){
+    memcpy(debug_ip,ip,16-1);
+    debug_name[16-1]='\0';
+    debug_port=port;
+}
+
 //connects client to server
 //returns: int sockfd
 int setup_client(char* ip, int port) {
@@ -52,7 +64,7 @@ int setup_server(int port){
 
     // bind to socket
     if ((bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) {
-        err(1,"Socket bind failed\n");
+        err(1,"Socket bind failed");
     }
     else{
         printf("Socket successfully binded\n");
@@ -60,7 +72,7 @@ int setup_server(int port){
     
     //listen to clients
     if ((listen(sockfd, 100)) != 0) {
-        err(1,"Listen failed\n");
+        err(1,"Listen failed");
     } 
     else {
         printf("Server listening\n");
@@ -72,7 +84,7 @@ int setup_server(int port){
 int accept_new_client(int sockfd){
     int connfd = accept(sockfd, (struct sockaddr*)NULL, NULL); //Acepta un nuevo cliente
     if (connfd < 0) {
-        warn("Server accept failed\n");
+        err(1,"Server accept failed");
     } else {
         printf("Server accepts the client\n");
     }
@@ -83,40 +95,5 @@ int accept_new_client(int sockfd){
 void close_server(int sockfd){
     if(close(sockfd) == 1) {
         err(1,"Close failed\n");
-    }
-}
-
-void send_recv(int sockfd){
-    char buff[BUFF_SIZE];
-
-    struct timeval tv={0,500000};//tiempo de espera en el select
-    fd_set fds;//mascara, hay que resetearla cada vez que llamo a select
-    FD_ZERO(&fds);//pongo a 0 la mascara
-    FD_SET(STDIN_FILENO, &fds);//stdin
-    FD_SET(sockfd, &fds);//socket
-    if(select(sockfd+1, &fds, NULL, NULL, &tv)<0){//sokfd+1 comprueba todos los valores menores que ese, comprueba stdin tambien
-        err(1,"select error");
-    }
-    printf("\n>");
-    fflush(stdout);
-    if(FD_ISSET(STDIN_FILENO, &fds)){//if stdin
-        int ret_read=read(STDIN_FILENO, buff, BUFF_SIZE-1);
-        if(ret_read<0){
-            warn("read error");
-            return;
-        }
-        buff[ret_read]='\0';
-        printf("send: %s",buff);
-        send(sockfd, buff, BUFF_SIZE, 0);
-    }
-    if(FD_ISSET(sockfd, &fds)){//if socket
-        int ret_recv = recv(sockfd, buff, BUFF_SIZE-1, MSG_DONTWAIT);
-        if(ret_recv<0){
-            warn("recv error");
-            return;
-        }
-        buff[ret_recv]='\0';
-        printf("+++%s",buff);
-        fflush(stdout);
     }
 }

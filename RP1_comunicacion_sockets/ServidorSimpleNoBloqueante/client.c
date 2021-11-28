@@ -14,7 +14,6 @@ void int_handler(int sig) {
 int main(){
     int sockfd;
     sockfd=setup_client("127.0.0.1",PORT);
-
     while (running){
         send_recv(sockfd);
         signal(SIGINT, int_handler);
