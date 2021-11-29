@@ -1,14 +1,16 @@
 #nombre del ejecutable
-TARGET1 = client
-TARGET2 = server
+TARGET1 = p1
+TARGET2 = p2
+TARGET3 = p3
 #todos los objetos de los que dependa el ejecutable
-OBJS1 = client.o proxy.o
-OBJS2 = server.o proxy.o
+OBJS1 = proxy.o p1.o
+OBJS2 = proxy.o p2.o
+OBJS3 = proxy.o p3.o
 #flags del compilador
-CFLAGS = -Wall
+CFLAGS = -Wall -lpthread
 
 .PHONY: all
-all: $(TARGET1) $(TARGET2)
+all: $(TARGET1) $(TARGET2) $(TARGET3)
 
 #link del target con todos los objetos
 #$@ hace referencia a TARGET1
@@ -18,6 +20,8 @@ $(TARGET1) : $(OBJS1)
 $(TARGET2) : $(OBJS2)
 	gcc $(OBJS2) -o $@ $(CFLAGS) 
 
+$(TARGET3) : $(OBJS3)
+	gcc $(OBJS3) -o $@ $(CFLAGS)
 
 #regla para compilar cada objeto
 #ejemplo: gcc -c -Wall main.c -o main.o
@@ -30,4 +34,4 @@ $(TARGET2) : $(OBJS2)
 #se llama con make clean
 .PHONY: clean
 clean:
-	rm -f *.o $(TARGET1) $(TARGET2)
+	rm -f *.o $(TARGET1) $(TARGET2) $(TARGET3)
