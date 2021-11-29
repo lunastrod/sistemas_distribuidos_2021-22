@@ -1,15 +1,39 @@
 #include "proxy.h"
 
+void print_event(char*p_name, int lamport ,int8_t is_recv, enum operations action){
+    char action_name[50];
+    switch (action){
+        case READY_TO_SHUTDOWN:
+            strncpy(action_name,"READY_TO_SHUTDOWN",50);
+            break;
+        case SHUTDOWN_NOW:
+            strncpy(action_name,"SHUTDOWN_NOW",50);
+            break;
+        case SHUTDOWN_ACK:
+            strncpy(action_name,"SHUTDOWN_ACK",50);
+            break;
+    }
+
+    if(is_recv){
+        //PX, contador_lamport, SEND, operations
+        printf("%s, %d, SEND, %s",my_name,lamport,action_name);
+    }
+    else{
+        //PX, contador_lamport, RECV (PY), operations
+        printf("%s, %d, RECV (%s), %s",my_name,lamport,p_name,action_name);
+    }
+}
+
 // Establece el nombre del proceso (para los logs y trazas)
 void set_name (char name[2]){
-    memcpy(debug_name,name,3-1);
-    debug_name[3-1]='\0';
+    strncpy(my_name,name,PNAME_SIZE-1);
+    my_name[PNAME_SIZE-1]='\0';
 }
 // Establecer ip y puerto (para los logs y trazas)
 void set_ip_port (char* ip, unsigned int port){
-    memcpy(debug_ip,ip,16-1);
-    debug_name[16-1]='\0';
-    debug_port=port;
+    strncpy(my_ip,ip,IP_SIZE-1);
+    my_name[IP_SIZE-1]='\0';
+    my_port=port;
 }
 
 //connects client to server

@@ -4,6 +4,7 @@
         "condition_variable": "c",
         "inet.h": "c",
         "types.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "typeinfo": "c"
     }
 }

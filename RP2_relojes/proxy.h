@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <err.h>
+#include <string.h>
 
 //sockets
 #include <arpa/inet.h>
@@ -19,6 +20,11 @@ enum operations {
     SHUTDOWN_NOW,
     SHUTDOWN_ACK
 };
+enum{
+    PNAME_SIZE=20,
+    IP_SIZE=16
+};
+
 
 /*
 El campo origin contendrá el nombre del proceso que envía el mensaje.
@@ -34,10 +40,10 @@ struct message {
     unsigned int clock_lamport;
 };
 
-//VARIABLES PARA TRAZAS:
-char debug_name[3];
-char* debug_ip[16];
-unsigned int debug_port;
+//VARIABLES PARA TRAZAS Y LOGS:
+char my_name[3];
+char* my_ip[16];
+unsigned int my_port;
 
 // Establece el nombre del proceso (para los logs y trazas)
 void set_name (char name[2]);
@@ -62,15 +68,8 @@ int get_clock_lamport();
 void notify_ready_shutdown(int connfd);
 // Notifica que va a realizar el shutdown correctamente (SHUTDOWN_ACK)
 void notify_shutdown_ack(int connfd);
-
-
-
 //el servidor responde que el cliente puede apagarse (SHUTDOWN_NOW)
-void reply_shutdown_now();
-//setup del servidor
-//void setup_server();
-//setup del cliente
-//void connect_to_server();
+void send_shutdown_now();
 
 //connects client to server returns: int sockfd
 int setup_client(char* ip, int port);
@@ -82,3 +81,7 @@ int accept_new_client(int sockfd);
 void close_client(int sockfd);
 //encapsulate a close() call mainly to debug.
 void close_server(int sockfd);
+
+
+
+void print_event(char*p_name, int lamport ,int8_t is_recv, enum operations action);
