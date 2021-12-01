@@ -5,6 +5,8 @@
         "inet.h": "c",
         "types.h": "c",
         "unistd.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "bitset": "c",
+        "chrono": "c"
     }
 }
