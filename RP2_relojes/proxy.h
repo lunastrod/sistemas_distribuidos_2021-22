@@ -21,9 +21,18 @@ enum operations {
     SHUTDOWN_ACK
 };
 enum{
-    PNAME_SIZE=20,
-    IP_SIZE=16
+    NAME_SIZE=20,
+    IP_SIZE=16,
+    N_CLIENTS=2
 };
+
+#define SERVER_NAME "p2"
+#define CLIENT0_NAME "p1"
+#define CLIENT1_NAME "p2"
+
+const char client_names[NAME_SIZE][N_CLIENTS]={CLIENT0_NAME,CLIENT1_NAME};
+
+
 
 
 /*
@@ -41,33 +50,25 @@ struct message {
 };
 
 //VARIABLES PARA TRAZAS Y LOGS:
-char my_name[3];
-char* my_ip[16];
+char my_name[NAME_SIZE];
+char my_ip[16];
 unsigned int my_port;
+int my_sockfd;
+int client_connfds[N_CLIENTS];//para guardar connfd de p1 y p3 en ese orden
 
 // Establece el nombre del proceso (para los logs y trazas)
 void set_name (char name[2]);
-// Establecer ip y puerto (para los logs y trazas)
-// prefiero usar mis funciones setup_client y setup_server para hacer las conexiones
+// Establecer ip y puerto
 void set_ip_port (char* ip, unsigned int port);
-
-
 // Obtiene el valor del reloj de lamport.
 // Utilizalo cada vez que necesites consultar el tiempo.
 int get_clock_lamport();
-
-/*
-    Se que no deberia cambiar estas 2 funciones, pero prefiero pasar el connfd/sockfd
-    desde mi main en vez de tener varias variables globales, por eso pongo un argumento
-    mas, que es la connfd. Si esto fuera C++ crearia una clase con estas funciones.
-
-    saco los sockfd y connfd de las funciones setup_client, setup_server y accept_new_client
-*/
-
 // Notifica que está listo para realizar el apagado (READY_TO_SHUTDOWN)
-void notify_ready_shutdown(int connfd);
+void notify_ready_shutdown();
 // Notifica que va a realizar el shutdown correctamente (SHUTDOWN_ACK)
-void notify_shutdown_ack(int connfd);
+void notify_shutdown_ack();
+
+
 //el servidor responde que el cliente puede apagarse (SHUTDOWN_NOW)
 void send_shutdown_now();
 
@@ -77,10 +78,8 @@ int setup_client(char* ip, int port);
 int setup_server(int port);
 //returns: connfd
 int accept_new_client(int sockfd);
-//encapsulate a close() call mainly to debug.
-void close_client(int sockfd);
-//encapsulate a close() call mainly to debug.
-void close_server(int sockfd);
+void close_client();
+void close_server();
 
 
 

@@ -26,14 +26,20 @@ void print_event(char*p_name, int lamport ,int8_t is_recv, enum operations actio
 
 // Establece el nombre del proceso (para los logs y trazas)
 void set_name (char name[2]){
-    strncpy(my_name,name,PNAME_SIZE-1);
-    my_name[PNAME_SIZE-1]='\0';
+    bzero(my_name,NAME_SIZE);
+    memcpy(my_name,name,2);
 }
 // Establecer ip y puerto (para los logs y trazas)
 void set_ip_port (char* ip, unsigned int port){
     strncpy(my_ip,ip,IP_SIZE-1);
     my_name[IP_SIZE-1]='\0';
     my_port=port;
+    if(0==strncmp(my_name,SERVER_NAME,NAME_SIZE)){
+        my_sockfd=setup_server(port);
+    }
+    else{
+        my_sockfd=setup_client(ip,port);
+    }
 }
 
 //connects client to server
@@ -65,7 +71,7 @@ int setup_client(char* ip, int port) {
 //closes client
 void close_client(int sockfd){
     if(close(sockfd) == 1) {
-        err(1,"Close failed\n");
+        warn("Close failed\n");
     }
 }
 
@@ -116,8 +122,11 @@ int accept_new_client(int sockfd){
 }
 
 //closes server
-void close_server(int sockfd){
-    if(close(sockfd) == 1) {
-        err(1,"Close failed\n");
+void close_server(){
+    for(int i=0; i<N_CLIENTS; i++){
+        close(client_connfds[i]);
+    }
+    if(close(my_sockfd) == 1) {
+        warn("Close sockfd failed\n");
     }
 }
