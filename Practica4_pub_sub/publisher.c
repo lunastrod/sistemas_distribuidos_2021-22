@@ -5,3 +5,4 @@ int main(){
     pub_register("hola");
     pub_unregister("hola", 12);
 }
+

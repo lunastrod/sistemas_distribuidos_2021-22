@@ -8,24 +8,10 @@
 //sockets
 #include <arpa/inet.h>
 
-/*
-MACRO PARA PONER TRAZAS
-usage: TDEB("ip:%s port%d",ip,port);
-asi son mas faciles de quitar para hacer la entrega
-*/
-#define TDEB(...) fprintf(stderr,"DEBUG: "__VA_ARGS__); fprintf(stderr,"\n")
+//broker saves client info using client_list.h
+#include "client_list.h"
 
-enum{
-    TOPICS_MAX=10,
-    PUBLISHERS_MAX=100,
-    SUBSCRIBERS_MAX=1000
-};
 
-struct topic{
-    char name[100];
-    struct client_list *subs;
-    struct client_list *pubs;
-};
 
 enum{
     IP_SIZE=16,
@@ -62,7 +48,6 @@ struct response {
 };
 
 int my_sockfd;
-//broker saves connfds in client_list.h
 
 
 //====================================================

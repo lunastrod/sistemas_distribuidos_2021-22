@@ -149,7 +149,6 @@ void brok_recv(int connfd){
     else{
         brok_new_register(connfd, msg.topic, msg.id, msg.action);
     }
-
 }
 
 void brok_new_register(int connfd, char topic[100], int id, enum operations action){
@@ -162,6 +161,9 @@ void brok_new_register(int connfd, char topic[100], int id, enum operations acti
     if(ret_val!=sizeof(msg)){
         warnx("send broker register/unregister to topic %s failed",topic);
     }
+    struct client cl;
+    cl.id=msg.id;
+    cl.connfd=connfd;
 }
 
 void pub_init(char* ip, int port){

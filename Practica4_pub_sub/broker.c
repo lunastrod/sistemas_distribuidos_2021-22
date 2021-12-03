@@ -1,10 +1,6 @@
-#include "client_list.h"
 #include "proxy.h"
 
 /*
-
-struct topic topics[10];
-
 int main(){
     int port;
     for(int i=0; i<TOPICS_MAX; i++){
@@ -18,10 +14,28 @@ int main(){
     }
     return 0;
 }
-
 */
 
 int main(){
-    brok_init(8080);
-    brok_recv(accept_new_client(my_sockfd));
+    //brok_init(8080);
+    //brok_recv(accept_new_client(my_sockfd));
+    topic_list_init();
+    topic_list_print();
+    printf("\n");
+    
+    topic_list_new_topic("hola");
+    
+    topic_list_new_pub("hola", 80);
+    topic_list_new_pub("hola", 80);
+    topic_list_new_sub("hola", 80);
+    topic_list_print();
+    printf("\n");
+
+    topic_list_remove_topic("hola");
+
+
+    topic_list_print();
+    printf("\n");
+    
+    topic_list_delete();
 }
