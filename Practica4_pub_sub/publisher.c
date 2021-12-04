@@ -2,7 +2,8 @@
 
 int main(){
     pub_init("127.0.0.1",8080);
-    pub_register("hola");
-    pub_unregister("hola", 12);
+    int id=pub_register("hola");
+    printf("id=%d\n", id);
+    pub_unregister("hola", id);
 }
 

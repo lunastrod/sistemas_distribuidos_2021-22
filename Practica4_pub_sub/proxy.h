@@ -77,8 +77,8 @@ int my_sockfd;
     void brok_recv();
 //====================================================
     //subscriber
-    void sub_init_subscriber(char* ip, int port);
-    void sub_close_subscriber();//calls unregister, closes sockfd
+    void sub_init(char* ip, int port);
+    void sub_close();//calls unregister, closes sockfd
 
     int  sub_register(char topic[100]);//returns id, id=-1 if error
     void sub_unregister(char topic[100], int id);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <err.h>
 
 /*
@@ -11,7 +12,7 @@ asi son mas faciles de quitar para hacer la entrega
 #define TDEB(...) fprintf(stderr,"DEBUG: "__VA_ARGS__); fprintf(stderr,"\n")
 
 enum{
-    TOPICS_MAX=100,
+    TOPICS_MAX=10,
     PUBLISHERS_MAX=100,
     SUBSCRIBERS_MAX=1000
 };
@@ -38,6 +39,7 @@ struct client_list{
     struct client * list;//array, malloc when init_list
 };
 
+int client_id_counter;
 struct topic topics[TOPICS_MAX];
 
 //==============================================
@@ -51,18 +53,28 @@ struct topic topics[TOPICS_MAX];
     void client_list_print(struct client_list * clients);
 //==============================================
     //topic list
-    void topic_list_init();//writes global variable topics[TOPICS_MAX]
+
+    //writes global variable topics[TOPICS_MAX]
+    void topic_list_init();
     void topic_list_delete();
     void topic_list_print();
 
-    int topic_list_index_from_name(char topic_name[TOPIC_NAME_SIZE]);//returns index
-    int topic_list_new_topic(char name[TOPIC_NAME_SIZE]);//returns 1 if ok, 0 if error
+    //returns index
+    int topic_list_index_from_name(char topic_name[TOPIC_NAME_SIZE]);
+
+    //returns 1 if ok, 0 if error
+    int topic_list_new_topic(char name[TOPIC_NAME_SIZE]);
+
     void topic_list_remove_topic(char topic_name[TOPIC_NAME_SIZE]);
 
-    int topic_list_new_sub(char topic_name[TOPIC_NAME_SIZE], int connfd);//returns id
+    //returns id
+    int topic_list_new_sub(char topic_name[TOPIC_NAME_SIZE], int connfd);
+
     void topic_list_remove_sub(char topic_name[TOPIC_NAME_SIZE], int id);
 
+    //returns id
     int topic_list_new_pub(char topic_name[TOPIC_NAME_SIZE], int connfd);
+
     void topic_list_remove_pub(char topic_name[TOPIC_NAME_SIZE], int id);
 //==============================================
 

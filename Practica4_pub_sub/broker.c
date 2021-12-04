@@ -16,26 +16,46 @@ int main(){
 }
 */
 
+/*
+brok_init{
+    B: topic_list_init();
+    B: listen
+}
+
+P: connect connfd
+B: accept connfd
+P: P>B message REGISTER_PUBLISHER topic
+B: recv
+B: id=topic_list_new_pub(topic, connfd)
+B: B>P response status=OK, id
+
+brok_close{
+    close sockfd()
+    topic_list_delete()
+}
+*/
+
 int main(){
-    //brok_init(8080);
-    //brok_recv(accept_new_client(my_sockfd));
-    topic_list_init();
-    topic_list_print();
-    printf("\n");
-    
-    topic_list_new_topic("hola");
-    
-    topic_list_new_pub("hola", 80);
-    topic_list_new_pub("hola", 80);
-    topic_list_new_sub("hola", 80);
-    topic_list_print();
-    printf("\n");
+    brok_init(8080);
+    /*
+    while(1){
+        topic_list_print();
+        printf("\n\n");
+        int c=accept_new_client(my_sockfd);
 
-    topic_list_remove_topic("hola");
+        brok_recv(c);//register
+        topic_list_print();
+        printf("\n\n");
+
+        brok_recv(c);//unregister
+        //sleep(1);
+    }
+    */
 
 
-    topic_list_print();
-    printf("\n");
+    brok_close();
+
     
-    topic_list_delete();
+
+    
 }
