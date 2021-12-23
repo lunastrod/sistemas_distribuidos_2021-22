@@ -7,6 +7,11 @@
         "unistd.h": "c",
         "typeinfo": "c",
         "bitset": "c",
-        "chrono": "c"
+        "chrono": "c",
+        "ratio": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "random": "c"
     }
 }

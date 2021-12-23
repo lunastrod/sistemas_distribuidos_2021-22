@@ -11,6 +11,8 @@
 //broker saves client info using client_list.h
 #include "client_list.h"
 
+#include <time.h>
+
 
 
 enum{
@@ -47,6 +49,12 @@ struct response {
     int id;
 };
 
+enum broker_mode {
+    SEQUENTIAL=0,
+    PARALLEL=1,
+    FAIR=2
+};
+
 int my_sockfd;
 
 
@@ -60,6 +68,10 @@ int my_sockfd;
     int accept_new_client(int sockfd);
 
     int pub_sub_register_unregister(int sockfd, char topic[100], int id, enum operations action);
+
+    void new_log(char * text);
+    void debug_print_msg(struct message msg, char * debug_msg);
+    void debug_print_response(struct response msg, char * debug_msg);
 //====================================================
     //publisher
     void pub_init(char* ip, int port);
@@ -67,14 +79,16 @@ int my_sockfd;
 
     int  pub_register(char topic[100]);//returns id, id=-1 if error
     void pub_unregister(char topic[100], int id);
-    void pub_send_data(char data[100]);
+    void pub_publish_data(char data[100], char topic[TOPIC_NAME_SIZE]);
 //====================================================
     //broker
     void brok_init(int port);
     void brok_close();
 
     void brok_new_register();
-    void brok_recv();
+    void brok_seq_send(struct message msg);
+    void brok_seq_recv();
+    void brok_recv(int connfd);
 //====================================================
     //subscriber
     void sub_init(char* ip, int port);
