@@ -15,7 +15,7 @@ int setup_client(char* ip, int port) {
         err(1,"Socket creation failed\n");
     }
     else {
-        printf("Socket successfully created\n" );
+        //printf("Socket successfully created\n" );
     }
     // assign ip and port
     struct sockaddr_in servaddr;
@@ -28,7 +28,7 @@ int setup_client(char* ip, int port) {
         warn("Connection with the server failed, retrying");
         sleep(1);
     }
-    printf("Client conected to server\n");
+    //printf("Client conected to server\n");
     return sockfd;
 }
 
@@ -41,7 +41,7 @@ int setup_server(int port){
         err(1,"Socket creation failed\n");
     }
     else{
-        printf("Socket successfully created\n");
+        //printf("Socket successfully created\n");
     }
     // assign ip and port
     struct sockaddr_in servaddr;
@@ -54,7 +54,7 @@ int setup_server(int port){
         err(1,"Socket bind failed");
     }
     else{
-        printf("Socket successfully binded\n");
+        //printf("Socket successfully binded\n");
     }
     
     //listen to clients
@@ -62,7 +62,7 @@ int setup_server(int port){
         err(1,"Listen failed");
     } 
     else {
-        printf("Server listening\n");
+        //printf("Server listening\n");
     }
     return sockfd;
 }
@@ -73,7 +73,7 @@ int accept_new_client(int sockfd){
     if (connfd < 0) {
         err(1,"Server accept failed");
     } else {
-        printf("Server accepts the client\n");
+        //printf("Server accepts the client\n");
     }
     return connfd;
 }
@@ -110,7 +110,7 @@ int pub_sub_register_unregister(int sockfd, char topic[100], int id, enum operat
         warn("recv broker response failed topic:%s",topic);
         return -1;
     }
-    TDEB("recv");
+    //TDEB("recv");
 
     switch (resp.response_status){
     case OK:
@@ -145,7 +145,7 @@ void sub_unregister(char topic[100], int id){
 }
 
 void brok_recv(int connfd){
-    TDEB("hola?");
+    //TDEB("hola?");
     struct message msg;
     int ret_val;
     ret_val = recv(connfd, &msg, sizeof(msg),0);
@@ -154,11 +154,11 @@ void brok_recv(int connfd){
         return;
     }
     if(msg.action==PUBLISH_DATA){
-        TDEB("publish data");
+        //TDEB("publish data");
         brok_seq_send(msg);
     }
     else{
-        TDEB("new register");
+        //TDEB("new register");
         brok_new_register(connfd, msg.topic, msg.id, msg.action);
     }
 }
@@ -168,8 +168,11 @@ void brok_new_register(int connfd, char topic[100], int id, enum operations acti
     msg.id=-1;
     msg.response_status=ERROR;
 
+    //TDEB("brok_new_register");
+
 
     if(action==REGISTER_PUBLISHER){
+        //TDEB("brok_new_publisher");
         msg.id=topic_list_new_pub(topic,connfd);
         msg.response_status=OK;
     }
@@ -197,12 +200,25 @@ void brok_new_register(int connfd, char topic[100], int id, enum operations acti
 void pub_init(char* ip, int port){
     my_sockfd=setup_client(ip,port);
 }
-void pub_close();//calls unregister, closes sockfd
+
+//calls unregister, closes sockfd
+void pub_close(char topic[100], int id){
+    pub_unregister(topic,id);
+    sleep(1);
+    close(my_sockfd);
+}
+    
 
 void sub_init(char* ip, int port){
     my_sockfd=setup_client(ip,port);
 }
-void sub_close();//calls unregister, closes sockfd
+
+//calls unregister, closes sockfd
+void sub_close(char topic[100], int id){
+    sub_unregister(topic,id);
+    sleep(1);
+    close(my_sockfd);
+}
 
 void brok_init(int port){
     topic_list_init();
@@ -211,6 +227,7 @@ void brok_init(int port){
 }
 void brok_close(){
     topic_list_delete();
+    sleep(1);
     close(my_sockfd);
 }
 
@@ -277,6 +294,7 @@ void brok_seq_send(struct message msg){
     int topic_index=topic_list_index_from_name(msg.topic);
     if(topic_index<0){
         warnx("brok_seq_send topic doesnt exist");
+        return;
     }
     for(int i=0; i<topics[topic_index].subs->count; i++){
         int fd=topics[topic_index].subs->list[i].connfd;
@@ -285,22 +303,175 @@ void brok_seq_send(struct message msg){
     }
 }
 
-void brok_seq_recv(){
+void brok_seq_recv(enum broker_mode brok_mode){
+    struct pollfd fds[TOPICS_MAX*PUBLISHERS_MAX];
+    int npubs;
     for(int i=0; i<TOPICS_MAX; i++){
-        TDEB("topic:%s %d",topics[i].name,topics[i].pubs->count);
         if(!topics[i].is_valid){
             continue;
         }
         for(int j=0; j<topics[i].pubs->count; j++){
-            struct message msg;
-            int connfd=topics[i].pubs->list[j].connfd;
-            TDEB("haciendo recv");
-            int ret_recv = recv(connfd, &msg, sizeof(msg), MSG_DONTWAIT);
-            if(ret_recv<0){
-                warn("recv error");
-                return;
-            }
-            brok_seq_send(msg);
+            fds[i*TOPICS_MAX+j].fd=topics[i].pubs->list[j].connfd;
+            fds[i*TOPICS_MAX+j].events=POLLIN;
+            npubs++;
         }
+    }
+    int ret = poll(fds, npubs, 1000);
+
+    if (ret == -1) {
+		err(1,"poll error");
+		//return;
+	}
+
+    topic_list_print();
+
+    for(int i=0; i<TOPICS_MAX; i++){
+        if(!topics[i].is_valid){
+            continue;
+        }
+        for(int j=0; j<topics[i].pubs->count; j++){
+            if (fds[i*TOPICS_MAX+j].revents & POLLIN){
+                //printf ("fd is readable\n");
+                struct message msg;
+                int ret_recv = recv(fds[i*TOPICS_MAX+j].fd, &msg, sizeof(msg), MSG_DONTWAIT);
+                if(ret_recv!=sizeof(msg)){
+                    warn("recv error fd:%d return: %d", fds[i*TOPICS_MAX+j].fd, ret_recv);
+                    return;
+                }
+                if(msg.action==PUBLISH_DATA){
+                    switch (brok_mode){
+                    case SEQUENTIAL:
+                        brok_seq_send(msg);
+                        break;
+                    case PARALLEL:
+                        brok_parallel_send(msg);
+                        break;
+                    case FAIR:
+                        brok_fair_send(msg);
+                        break;
+                    default:
+                        warnx("brok_mode not recognised, seq");
+                        brok_seq_send(msg);
+                        break;
+                    }
+                }
+                else{
+                    brok_new_register(fds[i*TOPICS_MAX+j].fd, msg.topic, msg.id, msg.action);
+                }
+
+            }
+        }
+    }
+
+    int nsubs;
+    struct pollfd fds_subscribers[TOPICS_MAX*SUBSCRIBERS_MAX];
+    for(int i=0; i<TOPICS_MAX; i++){
+        if(!topics[i].is_valid){
+            continue;
+        }
+        for(int j=0; j<topics[i].subs->count; j++){
+            fds_subscribers[i*TOPICS_MAX+j].fd=topics[i].subs->list[j].connfd;
+            fds_subscribers[i*TOPICS_MAX+j].events=POLLIN;
+            nsubs++;
+        }
+    }
+    poll(fds_subscribers, nsubs, 1000);
+    for(int i=0; i<TOPICS_MAX; i++){
+        if(!topics[i].is_valid){
+            continue;
+        }
+        for(int j=0; j<topics[i].subs->count; j++){
+            if (fds_subscribers[i*TOPICS_MAX+j].revents & POLLIN){
+                //printf ("fd is readable\n");
+                struct message msg;
+                int ret_recv = recv(fds_subscribers[i*TOPICS_MAX+j].fd, &msg, sizeof(msg), MSG_DONTWAIT);
+                if(ret_recv!=sizeof(msg)){
+                    warn("recv error fd:%d return: %d", fds_subscribers[i*TOPICS_MAX+j].fd, ret_recv);
+                    return;
+                }
+                if(msg.action!=PUBLISH_DATA){
+                    brok_new_register(fds_subscribers[i*TOPICS_MAX+j].fd, msg.topic, msg.id, msg.action);
+                }
+            }
+        }
+    }
+
+
+}
+
+void * brok_thread_send(void * arg){
+    struct brok_thread_send_args * args=(struct brok_thread_send_args *)arg;
+    //printf("sending to %d\n", args->connfd);
+    int ret=send(args->connfd,&args->msg,sizeof(struct message),0);
+    if(ret<0){
+        warn("send error %d",args->connfd);
+    }
+    return NULL;
+}
+
+void brok_parallel_send(struct message msg){
+    debug_print_msg(msg,"brok_parallel_send");
+    pthread_t threads[SUBSCRIBERS_MAX];
+    struct brok_thread_send_args * args[SUBSCRIBERS_MAX];
+
+    int topic_index=topic_list_index_from_name(msg.topic);
+    if(topic_index<0){
+        warnx("brok_parallel_send topic doesnt exist");
+        return;
+    }
+
+    int threads_used=topics[topic_index].subs->count;
+
+    for(int i=0; i<threads_used; i++){
+        args[i]=malloc(sizeof(struct brok_thread_send_args));
+        args[i]->connfd=topics[topic_index].subs->list[i].connfd;
+        args[i]->msg=msg;
+        //printf("args[i]->connfd=%d\n",args[i]->connfd);
+        pthread_create(&threads[i],NULL, brok_thread_send, (void *)args[i]);
+    }
+
+    for(int i=0; i<threads_used; i++){
+        pthread_join(threads[i],NULL);
+        free(args[i]);
+        args[i]=NULL;
+    }
+}
+
+void * brok_barrier_send(void * arg){
+    struct brok_thread_send_args * args=(struct brok_thread_send_args *)arg;
+    pthread_barrier_wait(&fair_send_barrier);
+    int ret=send(args->connfd,&args->msg,sizeof(struct message),0);
+    if(ret<0){
+        warn("send error");
+    }
+    return NULL;
+}
+
+void brok_fair_send(struct message msg){
+    debug_print_msg(msg,"brok_fair_send");
+    pthread_t threads[SUBSCRIBERS_MAX];
+    struct brok_thread_send_args * args[SUBSCRIBERS_MAX];
+    
+
+    int topic_index=topic_list_index_from_name(msg.topic);
+    if(topic_index<0){
+        warnx("brok_fair_send topic doesnt exist");
+        return;
+    }
+
+    int threads_used=topics[topic_index].subs->count;
+    pthread_barrier_init(&fair_send_barrier, NULL, threads_used);
+
+    for(int i=0; i<threads_used; i++){
+        args[i]=malloc(sizeof(struct brok_thread_send_args));
+        args[i]->connfd=topics[topic_index].subs->list[i].connfd;
+        args[i]->msg=msg;
+        pthread_create(&threads[i],NULL, brok_thread_send, (void *)args[i]);
+    }
+
+    for(int i=0; i<threads_used; i++){
+        pthread_join(threads[i],NULL);
+        free(args[i]);
+        args[i]=NULL;
     }
 }

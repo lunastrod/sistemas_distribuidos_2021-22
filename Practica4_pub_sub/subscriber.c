@@ -1,6 +1,8 @@
 #include "proxy.h"
 #include <getopt.h>
 
+#include <signal.h>//SIGINT
+
 
 struct args{
     char ip[IP_SIZE];
@@ -60,10 +62,15 @@ void manage_args(int argc, char ** argv, struct args *data){
     //printf("--ip %s --port %d topic %s\n",data->ip,data->port,data->topic);
 }
 
+static volatile int publishing=1;
+void int_handler(int sig) {
+    publishing = 0;
+}
+
 int main(int argc, char *argv[]){
     struct args args_data;
     manage_args(argc,argv,&args_data);
-    printf("--ip %s --port %d topic %s\n",args_data.ip,args_data.port,args_data.topic);
+    //printf("--ip %s --port %d topic %s\n",args_data.ip,args_data.port,args_data.topic);
 
     sub_init(args_data.ip,args_data.port);
     new_log("Subscriber conectado con broker ");
@@ -78,24 +85,27 @@ int main(int argc, char *argv[]){
         new_log("Registrado correctamente");
         printf(" con ID: %d para topic %s\n",id,args_data.topic);
     }
-    while(1){
-        struct message msg;
-        recv(my_sockfd,&msg,sizeof(msg),0);
-        debug_print_msg(msg,"sub");
+
+    struct pollfd fd;
+    fd.fd = my_sockfd;
+	fd.events = POLLIN;
+
+    while(publishing){
+        signal(SIGINT, int_handler);
+        poll(&fd, 1, 1000);
+        if (fd.revents & POLLIN){
+            struct message msg;
+            recv(my_sockfd,&msg,sizeof(msg),0);
+            debug_print_msg(msg,"sub");
+        }
+
         //new_log("Recibido mensaje ");
         //printf("topic: %s - mensaje: %s - Generó: $time_generated_data - Recibido: $time_received_data - Latencia:$latency.\n", "$topic", "$mensaje");
     }
 
 
-
-    //sub_close();//probablemente nunca haga falta cerrarlo
-    /*
-    sub_init("127.0.0.1",8080);
-    int id=sub_register("hola");
-    printf("id=%d\n", id);
-    sub_unregister("hola", id);
-    //sub_close();
-    sleep(1);
-    */
+    sub_close(args_data.topic,id);
+    new_log("De-Registrado ");
+    printf("(%d) correctamente del broker.\n", id);
 
 }

@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <err.h>
 
+#include <semaphore.h>
+
 /*
 MACRO PARA PONER TRAZAS
 usage: TDEB("ip:%s port%d",ip,port);
@@ -41,6 +43,11 @@ struct client_list{
 
 int client_id_counter;
 struct topic topics[TOPICS_MAX];
+sem_t topics_mutex;
+/*
+sem_wait(&topics_mutex);
+sem_post(&topics_mutex);
+*/
 
 //==============================================
     //client list

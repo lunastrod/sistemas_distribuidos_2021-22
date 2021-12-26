@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
     new_log("Publisher conectado con el broker correctamente.");
     printf("(%s:%d)\n",args_data.ip,args_data.port);
 
-    int id=sub_register(args_data.topic);
+    int id=pub_register(args_data.topic);
     if(id<0){
         new_log("Error al hacer el registro: ");
         printf("%d\n",id);
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
     char data[100];
     int i=0;
     while(publishing){
-        snprintf(data,sizeof(data),"topic: %s data %d",args_data.topic,i);
+        snprintf(data,sizeof(data),"data %d",i);
         pub_publish_data(data,args_data.topic);
         //new_log("Publicado mensaje ");
         //printf("topic: %s - mensaje: %s - Generó: [%lu.%lu]\n", args_data.topic, data, spec.tv_sec, spec.tv_nsec);
@@ -97,6 +97,7 @@ int main(int argc, char *argv[]){
         i++;
     }
 
+    pub_close(args_data.topic,id);
     new_log("De-Registrado ");
     printf("(%d) correctamente del broker.\n", id);
 }

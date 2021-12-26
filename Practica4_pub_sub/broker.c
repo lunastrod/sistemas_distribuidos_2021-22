@@ -1,7 +1,5 @@
 #include "proxy.h"
 #include <getopt.h>
-#include <pthread.h>
-
 
 
 struct args{
@@ -65,7 +63,7 @@ void manage_args(int argc, char ** argv, struct args *data){
         data->mode=SEQUENTIAL;
     }
 
-    printf("--port %d mode %d\n",data->port,data->mode);
+    //printf("--port %d mode %d\n",data->port,data->mode);
 }
 
 
@@ -129,8 +127,12 @@ las funciones de la base de datos necesitan mutex
 
 void * new_clients_thread_func(void * arg){
     while(1){
+        
         int connfd=accept_new_client(my_sockfd);
+        //printf("connfd=%d\n",connfd);
+        //TDEB("brok new client");
         brok_recv(connfd);
+        //TDEB("brok new client ok");
     }
     return NULL;
 }
@@ -139,16 +141,18 @@ void * new_clients_thread_func(void * arg){
 int main(int argc, char *argv[]){
     struct args args_data;
     manage_args(argc,argv, &args_data);
-    printf("--port %d mode %d\n",args_data.port,args_data.mode);
+    //printf("--port %d mode %d\n",args_data.port,args_data.mode);
 
+    //TDEB("brok init");
     brok_init(args_data.port);
+    //TDEB("brok init ok");
 
     pthread_t new_clients_thread;
     pthread_create(&new_clients_thread,NULL,new_clients_thread_func,NULL);
 
-    printf("hilo creado\n");
+    //printf("hilo creado\n");
     while(1){
-        brok_seq_recv();//TODO:CREO QUE AL AÑADIR PUBS NO SE ACTUALIZA PUB COUNT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        brok_seq_recv(args_data.mode);
     }
 
     pthread_join(new_clients_thread,NULL);

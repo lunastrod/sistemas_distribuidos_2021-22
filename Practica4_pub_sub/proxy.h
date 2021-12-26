@@ -13,6 +13,11 @@
 
 #include <time.h>
 
+//poll is much better than select
+#include <sys/poll.h>
+
+#include <pthread.h>
+
 
 
 enum{
@@ -55,6 +60,13 @@ enum broker_mode {
     FAIR=2
 };
 
+pthread_barrier_t fair_send_barrier;
+
+struct brok_thread_send_args{
+    int connfd;
+    struct message msg;
+};
+
 int my_sockfd;
 
 
@@ -75,7 +87,7 @@ int my_sockfd;
 //====================================================
     //publisher
     void pub_init(char* ip, int port);
-    void pub_close();//calls unregister, closes sockfd
+    void pub_close(char topic[100], int id);//calls unregister, closes sockfd
 
     int  pub_register(char topic[100]);//returns id, id=-1 if error
     void pub_unregister(char topic[100], int id);
@@ -86,13 +98,22 @@ int my_sockfd;
     void brok_close();
 
     void brok_new_register();
+
     void brok_seq_send(struct message msg);
-    void brok_seq_recv();
+
+    void * brok_thread_send(void * arg);
+    void brok_parallel_send(struct message msg);
+
+    void * brok_barrier_send(void * arg);
+    void brok_fair_send(struct message msg);
+
     void brok_recv(int connfd);
+    void brok_seq_recv(enum broker_mode brok_mode);
+    
 //====================================================
     //subscriber
     void sub_init(char* ip, int port);
-    void sub_close();//calls unregister, closes sockfd
+    void sub_close(char topic[100], int id);//calls unregister, closes sockfd
 
     int  sub_register(char topic[100]);//returns id, id=-1 if error
     void sub_unregister(char topic[100], int id);
