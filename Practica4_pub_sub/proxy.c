@@ -58,7 +58,7 @@ int setup_server(int port){
     }
     
     //listen to clients
-    if ((listen(sockfd, 10000)) != 0) {
+    if ((listen(sockfd, 20000)) != 0) {
         err(1,"Listen failed");
     } 
     else {
@@ -71,7 +71,7 @@ int setup_server(int port){
 int accept_new_client(int sockfd){
     int connfd = accept(sockfd, (struct sockaddr*)NULL, NULL); //Acepta un nuevo cliente
     if (connfd < 0) {
-        err(1,"Server accept failed");
+        warn("Server accept failed");
     } else {
         //printf("Server accepts the client\n");
     }

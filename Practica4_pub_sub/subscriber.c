@@ -91,6 +91,7 @@ int main(int argc, char *argv[]){
     if(id<0){
         new_log("Error al hacer el registro: ");
         printf("%d\n",id);
+        exit(1);
     }
     else{
         new_log("Registrado correctamente");

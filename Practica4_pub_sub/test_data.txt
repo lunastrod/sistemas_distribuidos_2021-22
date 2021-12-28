@@ -1,0 +1,4 @@
+cat data.txt |grep -o 'Latencia: [^,]*$'| cut -d'[' -f 2 | cut -d']' -f 1 | tee latencias.txt
+
+[1640714264.115869877] Recibido mensaje topic: patatas - mensaje: data 5 - Generó: [1640714264.115872963] - Recibido: [1640714264.115663809] - Latencia: [0.209154].
+[1640714265.116006308] Recibido mensaje topic: patatas - mensaje: data 6 - Generó: [1640714265.116009254] - Recibido: [1640714265.115784624] - Latencia: [0.224630].
