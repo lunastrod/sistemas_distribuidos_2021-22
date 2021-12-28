@@ -142,8 +142,12 @@ void topic_list_delete(){
 
 void topic_list_print(){
     sem_wait(&topics_mutex);
+    printf("Resumen:\n");
     for(int i=0; i<TOPICS_MAX; i++){
-        printf("%d topic: %s pubs: %ld subs %ld\n",topics[i].is_valid, topics[i].name, topics[i].pubs->count, topics[i].subs->count);
+        if(topics[i].is_valid){
+            printf("\t%s: %ld publicadores - %ld subscriptores\n", topics[i].name, topics[i].pubs->count, topics[i].subs->count);
+        }
+        /*
         for(int j=0; j<topics[i].pubs->count; j++){
             printf("p(fd%d id%d) ",topics[i].pubs->list[j].connfd, topics[i].pubs->list[j].id);
             if(j==topics[i].pubs->count-1){
@@ -156,6 +160,7 @@ void topic_list_print(){
                 printf("\n");
             }
         }
+        */
     }
     sem_post(&topics_mutex);
 }
@@ -282,12 +287,12 @@ int topic_list_new_pub(char topic_name[TOPIC_NAME_SIZE], int connfd){
     return cl.id;
 }
 void topic_list_remove_pub(char topic_name[TOPIC_NAME_SIZE], int id){
-    TDEB("topic_list_remove_pub %s, %d\n",topic_name,id);
+    //TDEB("topic_list_remove_pub %s, %d\n",topic_name,id);
     int index=topic_list_index_from_name(topic_name);
     if(index<0){
         return;
     }
-    TDEB("index:%d\n",index);
+    //TDEB("index:%d\n",index);
 
     sem_wait(&topics_mutex);
     client_list_remove_id(topics[index].pubs,id);

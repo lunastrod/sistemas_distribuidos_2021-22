@@ -97,7 +97,7 @@ int pub_sub_register_unregister(int sockfd, char topic[100], int id, enum operat
     msg.id=id;
     strncpy(msg.topic,topic,100);
 
-    debug_print_msg(msg,"pub_sub_register_unregister");
+    //debug_print_msg(msg,"pub_sub_register_unregister");
 
     ret_val = send(sockfd,&msg,sizeof(msg),0);
     if(ret_val!=sizeof(msg)){
@@ -155,10 +155,11 @@ void brok_recv(int connfd){
     }
     if(msg.action==PUBLISH_DATA){
         //TDEB("publish data");
-        brok_seq_send(msg);
+        //brok_seq_send(msg);
     }
     else{
         //TDEB("new register");
+
         brok_new_register(connfd, msg.topic, msg.id, msg.action);
     }
 }
@@ -173,22 +174,34 @@ void brok_new_register(int connfd, char topic[100], int id, enum operations acti
 
     if(action==REGISTER_PUBLISHER){
         //TDEB("brok_new_publisher");
+        new_log(" ");
+        printf("Nuevo cliente (%d) Publicador conectado :%s\n",id,topic);
         msg.id=topic_list_new_pub(topic,connfd);
+        topic_list_print();
         msg.response_status=OK;
     }
     if(action==REGISTER_SUBSCRIBER){
+        new_log(" ");
+        printf("Nuevo cliente (%d) Subscriptor conectado : %s\n",id,topic);
         msg.id=topic_list_new_sub(topic,connfd);
+        topic_list_print();
         msg.response_status=OK;
     }
     if(action==UNREGISTER_PUBLISHER){
+        new_log(" ");
+        printf("Eliminado cliente (%d) Publicador conectado : %s\n",id,topic);
         topic_list_remove_pub(topic,id);
+        topic_list_print();
         msg.response_status=OK;
     }
     if(action==UNREGISTER_SUBSCRIBER){
+        new_log(" ");
+        printf("Eliminado cliente (%d) Subscriptor conectado : %s\n",id,topic);
         topic_list_remove_sub(topic,id);
+        topic_list_print();
         msg.response_status=OK;
     }
-    debug_print_response(msg,"publish_data");
+    //debug_print_response(msg,"publish_data");
 
     int ret_val;
     ret_val = send(connfd,&msg,sizeof(msg),0);
@@ -233,6 +246,8 @@ void brok_close(){
 
 
 
+
+
 void pub_publish_data(char data[100], char topic[TOPIC_NAME_SIZE]){
     struct message msg;
     clock_gettime(CLOCK_REALTIME, &msg.data.time_generated_data);
@@ -240,11 +255,15 @@ void pub_publish_data(char data[100], char topic[TOPIC_NAME_SIZE]){
     msg.action=PUBLISH_DATA;
     msg.id=-1;
     strncpy(msg.topic,topic,sizeof(msg.topic));
-    debug_print_msg(msg,"publish_data");
+    //debug_print_msg(msg,"publish_data");
 
     int ret_val = send(my_sockfd,&msg,sizeof(msg),0);
     if(ret_val!=sizeof(msg)){
         warn("pub_publish_data %s failed ", data);
+    }
+    else{
+        new_log(" ");
+        printf("Publicado mensaje topic: %s - mensaje: %s - Generó: [%ld.%ld]\n",msg.topic,msg.data.data,msg.data.time_generated_data.tv_sec,msg.data.time_generated_data.tv_nsec);
     }
     
     
@@ -289,7 +308,7 @@ void debug_print_response(struct response msg, char * debug_msg){
 }
 
 void brok_seq_send(struct message msg){
-    debug_print_msg(msg,"brok_seq_send");
+    //debug_print_msg(msg,"brok_seq_send");
 
     int topic_index=topic_list_index_from_name(msg.topic);
     if(topic_index<0){
@@ -298,7 +317,7 @@ void brok_seq_send(struct message msg){
     }
     for(int i=0; i<topics[topic_index].subs->count; i++){
         int fd=topics[topic_index].subs->list[i].connfd;
-        debug_print_msg(msg,"seq");
+        //debug_print_msg(msg,"seq");
         send(fd,&msg,sizeof(msg),0);
     }
 }
@@ -323,7 +342,7 @@ void brok_seq_recv(enum broker_mode brok_mode){
 		//return;
 	}
 
-    topic_list_print();
+    
 
     for(int i=0; i<TOPICS_MAX; i++){
         if(!topics[i].is_valid){
@@ -339,20 +358,24 @@ void brok_seq_recv(enum broker_mode brok_mode){
                     return;
                 }
                 if(msg.action==PUBLISH_DATA){
+                    new_log(" ");
+                    printf("Recibido mensaje para publicar en topic: %s - mensaje: %s - Generó: [%ld.%ld]\n",msg.topic,msg.data.data,msg.data.time_generated_data.tv_sec,msg.data.time_generated_data.tv_nsec);
+                    new_log(" ");
+                    printf("Enviando mensaje en topic %s a %ld suscriptores.\n",msg.topic,topics[i].subs->count);
                     switch (brok_mode){
-                    case SEQUENTIAL:
-                        brok_seq_send(msg);
-                        break;
-                    case PARALLEL:
-                        brok_parallel_send(msg);
-                        break;
-                    case FAIR:
-                        brok_fair_send(msg);
-                        break;
-                    default:
-                        warnx("brok_mode not recognised, seq");
-                        brok_seq_send(msg);
-                        break;
+                        case SEQUENTIAL:
+                            brok_seq_send(msg);
+                            break;
+                        case PARALLEL:
+                            brok_parallel_send(msg);
+                            break;
+                        case FAIR:
+                            brok_fair_send(msg);
+                            break;
+                        default:
+                            warnx("brok_mode not recognised, seq");
+                            brok_seq_send(msg);
+                            break;
                     }
                 }
                 else{
@@ -410,7 +433,7 @@ void * brok_thread_send(void * arg){
 }
 
 void brok_parallel_send(struct message msg){
-    debug_print_msg(msg,"brok_parallel_send");
+    //debug_print_msg(msg,"brok_parallel_send");
     pthread_t threads[SUBSCRIBERS_MAX];
     struct brok_thread_send_args * args[SUBSCRIBERS_MAX];
 
@@ -448,7 +471,7 @@ void * brok_barrier_send(void * arg){
 }
 
 void brok_fair_send(struct message msg){
-    debug_print_msg(msg,"brok_fair_send");
+    //debug_print_msg(msg,"brok_fair_send");
     pthread_t threads[SUBSCRIBERS_MAX];
     struct brok_thread_send_args * args[SUBSCRIBERS_MAX];
     

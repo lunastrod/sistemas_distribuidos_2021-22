@@ -62,6 +62,17 @@ void manage_args(int argc, char ** argv, struct args *data){
     //printf("--ip %s --port %d topic %s\n",data->ip,data->port,data->topic);
 }
 
+void timespec_diff(struct timespec *start, struct timespec *stop, struct timespec *result){
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
+    } else {
+        result->tv_sec = stop->tv_sec - start->tv_sec;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+    return;
+}
+
 static volatile int publishing=1;
 void int_handler(int sig) {
     publishing = 0;
@@ -96,11 +107,17 @@ int main(int argc, char *argv[]){
         if (fd.revents & POLLIN){
             struct message msg;
             recv(my_sockfd,&msg,sizeof(msg),0);
-            debug_print_msg(msg,"sub");
+
+            new_log("Recibido mensaje ");
+            struct timespec now;
+            clock_gettime(CLOCK_REALTIME, &now);
+            struct timespec diff;
+            timespec_diff(&msg.data.time_generated_data,&now,&diff);
+            printf("topic: %s - mensaje: %s - Generó: [%ld.%ld] - Recibido: [%ld.%ld] - Latencia: [%ld.%ld].\n", msg.topic,msg.data.data,now.tv_sec,now.tv_nsec, msg.data.time_generated_data.tv_sec,msg.data.time_generated_data.tv_nsec, diff.tv_sec, diff.tv_nsec);
         }
 
-        //new_log("Recibido mensaje ");
-        //printf("topic: %s - mensaje: %s - Generó: $time_generated_data - Recibido: $time_received_data - Latencia:$latency.\n", "$topic", "$mensaje");
+
+
     }
 
 
