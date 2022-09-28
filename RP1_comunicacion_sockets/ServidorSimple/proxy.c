@@ -79,6 +79,36 @@ int accept_new_client(int sockfd){
     return connfd;
 }
 
+void simple_send(int sockfd, char * buffer, int buffer_size){
+    int count = 0;
+    int total = 0;
+    while ((count = send(sockfd, &buffer[total], buffer_size - total, 0)) > 0){
+        total += count;
+        return;
+    }
+    if (count == -1){
+        perror("recv");
+    }
+    else if (count == 0){
+        close_server(sockfd);
+    }
+}
+
+void simple_recv(int sockfd, char * buffer, int buffer_size){
+    int count = 0;
+    int total = 0;
+    while ((count = recv(sockfd, &buffer[total], buffer_size - total, 0)) > 0){
+        total += count;
+        return;
+    }
+    if (count == -1){
+        perror("recv");
+    }
+    else if (count == 0){
+        close_server(sockfd);
+    }
+}
+
 //closes server
 void close_server(int sockfd){
     if(close(sockfd) == 1) {
