@@ -1,0 +1,14 @@
+publisher y subscriber son bastante simples
+
+broker tiene 2 hilos principales, uno que acepta clientes nuevos y otro que atiende a los antiguos
+ambos hilos acceden a una base de datos protegida por un semáforo actuando como mutex
+la base de datos es un array de topics
+cada topic tiene 2 arrays para publicadores y subscriptores
+para hacer mas fácil el acceso a la base de datos he creado la biblioteca client_list.h que
+    encapsula la mayoría de operaciones de topics en sus funciones
+
+he aprendido muchísimo con este ejercicio, quizás demasiado complejo/largo.
+He intentado completar el csv con los resultados, pero quedan 3 horas para la entrega y:
+    -estoy cansad
+    -se acaba de caer la conexión a los laboratorios
+Sé que no es excusa pero creo que esto funciona y ya llevo demasiadas horas con esto.

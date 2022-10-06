@@ -8,7 +8,7 @@ OBJS1 = $(O_DIR)proxy.o $(O_DIR)client_list.o $(O_DIR)broker.o
 OBJS2 = $(O_DIR)proxy.o $(O_DIR)client_list.o $(O_DIR)publisher.o
 OBJS3 = $(O_DIR)proxy.o $(O_DIR)client_list.o $(O_DIR)subscriber.o
 #flags del compilador
-CFLAGS = -Wall -lpthread
+CFLAGS = -Wall -Werror -lpthread
 
 .PHONY: all
 

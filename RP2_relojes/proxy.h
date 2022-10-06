@@ -49,7 +49,7 @@ struct message {
     unsigned int clock_lamport;
 };
 
-//VARIABLES PARA TRAZAS Y LOGS:
+
 char my_name[NAME_SIZE];
 char my_ip[16];
 unsigned int my_port;

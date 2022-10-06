@@ -90,13 +90,9 @@ int main(){
     //P1 recibe el mensaje y envía a P2 el ACK de apagado. (SHUTDOWN_ACK)
     send_shutdown_now(CLIENT0_NAME);
 
-
-
     //P2 recibe el mensaje y envía a P3 la orden de apagarse. (SHUTDOWN_NOW)
     //P3 recibe el mensaje y envía a P2 el ACK de apagado. (SHUTDOWN_ACK)
     send_shutdown_now(CLIENT1_NAME);
-
-
 
 
     close_server();
