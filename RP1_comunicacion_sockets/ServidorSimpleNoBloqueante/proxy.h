@@ -24,4 +24,7 @@ int setup_server(int port);
 int accept_new_client(int sockfd);
 void close_server(int sockfd);
 
+void simple_send(int sockfd, char *buffer, int buffer_size, int send_flags);
+void simple_recv(int sockfd, char *buffer, int buffer_size, int recv_flags);
+
 void send_recv(int sockfd);
