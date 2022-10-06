@@ -96,7 +96,52 @@ int accept_new_client(int sockfd)
     return connfd;
 }
 
-void simple_send(int sockfd, char *buffer, int buffer_size)
+//closes server
+void close_server(int sockfd)
+{
+    if (close(sockfd) == 1)
+    {
+        err(1, "Close failed\n");
+    }
+}
+
+void send_recv(int sockfd)
+{
+    char buff[BUFF_SIZE];
+
+    struct timeval tv = {0, 500000}; //tiempo de espera en el select
+    fd_set fds;                      //mascara, hay que resetearla cada vez que llamo a select
+    FD_ZERO(&fds);                   //pongo a 0 la mascara
+    FD_SET(STDIN_FILENO, &fds);      //stdin
+    FD_SET(sockfd, &fds);            //socket
+
+    if (select(sockfd + 1, &fds, NULL, NULL, &tv) < 0)
+    { //sokfd+1 comprueba todos los valores menores que ese, comprueba stdin tambien
+        err(1, "select error");
+    }
+    printf("\n>");
+    fflush(stdout);
+    if (FD_ISSET(STDIN_FILENO, &fds))
+    { //if stdin
+        int ret_read = read(STDIN_FILENO, buff, BUFF_SIZE - 1);
+        if (ret_read < 0)
+        {
+            warn("read error");
+            return;
+        }
+        buff[ret_read] = '\0';
+        printf("send: %s", buff);
+        simple_send(sockfd, buff, BUFF_SIZE, 0);
+    }
+    if (FD_ISSET(sockfd, &fds))
+    { //if socket
+        simple_recv(sockfd, buff, BUFF_SIZE - 1, MSG_DONTWAIT);
+        printf("+++%s", buff);
+        fflush(stdout);
+    }
+}
+
+void simple_send(int sockfd, char *buffer, int buffer_size, int send_flags)
 {
     int count = 0;
     int total = 0;
@@ -107,15 +152,15 @@ void simple_send(int sockfd, char *buffer, int buffer_size)
     }
     if (count == -1)
     {
-        perror("recv");//error
+        perror("recv"); //error
     }
     else if (count == 0)
     {
-        close_server(sockfd);//socket cerrado, cierro yo tambien
+        close_server(sockfd); //socket cerrado, cierro yo tambien
     }
 }
 
-void simple_recv(int sockfd, char *buffer, int buffer_size)
+void simple_recv(int sockfd, char *buffer, int buffer_size, int recv_flags)
 {
     int count = 0;
     int total = 0;
@@ -131,14 +176,5 @@ void simple_recv(int sockfd, char *buffer, int buffer_size)
     else if (count == 0)
     {
         close_server(sockfd);
-    }
-}
-
-//closes server
-void close_server(int sockfd)
-{
-    if (close(sockfd) == 1)
-    {
-        err(1, "Close failed\n");
     }
 }

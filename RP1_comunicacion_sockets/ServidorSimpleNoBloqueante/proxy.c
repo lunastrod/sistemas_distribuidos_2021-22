@@ -160,7 +160,7 @@ void simple_send(int sockfd, char *buffer, int buffer_size, int send_flags)
     }
 }
 
-void simple_recv(int sockfd, char *buffer, int buffer_size, int recv_flags)
+void simple_recv(int sockfd, char *buffer, int buffer_size, int recv101_flags)
 {
     int count = 0;
     int total = 0;

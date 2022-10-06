@@ -7,13 +7,6 @@
 //sockets
 #include <arpa/inet.h>
 
-/*
-MACRO PARA PONER TRAZAS
-usage: TDEB("ip:%s port%d",ip,port);
-asi son mas faciles de quitar para hacer la entrega
-*/
-#define TDEB(...) fprintf(stderr,"DEBUG: "__VA_ARGS__); fprintf(stderr,"\n")
-
 enum{
     BUFF_SIZE=256
 };
@@ -27,4 +20,4 @@ void close_server(int sockfd);
 void simple_send(int sockfd, char *buffer, int buffer_size, int send_flags);
 void simple_recv(int sockfd, char *buffer, int buffer_size, int recv_flags);
 
-void send_recv(int sockfd);
+void send_recv(int sockfd); //uses select and nonblocking recv
