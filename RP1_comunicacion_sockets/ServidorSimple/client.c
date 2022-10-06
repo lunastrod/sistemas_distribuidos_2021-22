@@ -1,43 +1,51 @@
 #include "proxy.h"
-#include <signal.h>//SIGINT
+#include <signal.h> //SIGINT
 
-enum{
-    PORT=8080
+enum
+{
+    PORT = 8080
 };
 
 static volatile int running = 1;
-void int_handler(int sig) {
+void int_handler(int sig)
+{
     running = 0;
 }
 
-void recv_print_str(int sockfd){
+void recv_print_str(int sockfd)
+{
     char buff[BUFF_SIZE];
-    simple_recv(sockfd, buff, BUFF_SIZE, 0);
+    simple_recv(sockfd, buff, BUFF_SIZE);
     printf("+++%s\n", buff);
 }
 
-void stdin_send_str(int sockfd){
+void stdin_send_str(int sockfd)
+{
     char buff[BUFF_SIZE];
     printf(">");
     fgets(buff, BUFF_SIZE, stdin);
-    simple_send(sockfd, buff, BUFF_SIZE, 0);
+    simple_send(sockfd, buff, BUFF_SIZE);
 }
 
-int main(){
+int main()
+{
     int sockfd;
-    sockfd=setup_client("127.0.0.1",PORT);
+    sockfd = setup_client("127.0.0.1", PORT);
 
-    while (running){
+    while (running)
+    {
 
         stdin_send_str(sockfd);
         signal(SIGINT, int_handler);
-        if(!running){
+        if (!running)
+        {
             break;
         }
 
         recv_print_str(sockfd);
         signal(SIGINT, int_handler);
-        if(!running){
+        if (!running)
+        {
             break;
         }
     }
