@@ -5,7 +5,6 @@
 
 enum
 {
-    PORT = 8081,
     MAX_THREADS = 100
 };
 
@@ -20,17 +19,27 @@ void *server_thread(void *arg)
         int connfd = accept_new_client(sockfd);
 
         char buff[BUFF_SIZE];
-        simple_recv(connfd, buff, sizeof(buff) - 1, 0);
-        simple_send(connfd, "Hello client!", sizeof("Hello client!"), 0);
-        close(connfd);
+        while(1)
+        {
+            simple_recv(connfd, buff, sizeof(buff) - 1, 0);
+            printf("+++%s\n", buff);
+            fflush(stdout);
+            simple_send(connfd, "Hello client!", sizeof("Hello client!"), 0);
+        }
     }
 
     return NULL;
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    int sockfd = setup_server(PORT);
+    if(argc != 2)
+    {
+        printf("Usage: %s <port>\n", argv[0]);
+        exit(1);
+    }
+    int sockfd = setup_server(atoi(argv[1]));
+
     pthread_t threads[MAX_THREADS];
 
     for (int i = 0; i < MAX_THREADS; i++)

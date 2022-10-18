@@ -30,7 +30,7 @@ void stdin_send_str(int sockfd)
 int main()
 {
     int sockfd;
-    sockfd = setup_client("127.0.0.1", PORT);
+    sockfd = setup_client("212.128.254.141", PORT);
 
     while (running)
     {

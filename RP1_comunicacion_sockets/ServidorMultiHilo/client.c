@@ -2,10 +2,7 @@
 #include <signal.h> //SIGINT
 #include "time.h"
 
-enum
-{
-    PORT = 8081
-};
+
 
 void send_msg(int sockfd, int id)
 {
@@ -14,13 +11,13 @@ void send_msg(int sockfd, int id)
 
 int main(int argc, char **argv)
 {
-    int sockfd;
-
-    sockfd = setup_client("127.0.0.1", PORT);
-    if (argc != 2)
+    if (argc != 4)
     {
-        err(1, "usage: client id");
+        printf("Usage: %s <id> <ip> <port>\n", argv[0]);
+        exit(1);
     }
+    int sockfd;
+    sockfd = setup_client(argv[2], atoi(argv[3]));
 
     char buff[BUFF_SIZE];
 
