@@ -19,13 +19,12 @@ void *server_thread(void *arg)
         int connfd = accept_new_client(sockfd);
 
         char buff[BUFF_SIZE];
-        while(1)
-        {
-            simple_recv(connfd, buff, sizeof(buff) - 1, 0);
-            printf("+++%s\n", buff);
-            fflush(stdout);
-            simple_send(connfd, "Hello client!", sizeof("Hello client!"), 0);
-        }
+
+        simple_recv(connfd, buff, sizeof(buff) - 1, 0);
+        printf("+++%s\n", buff);
+        fflush(stdout);
+        simple_send(connfd, "Hello client!", sizeof("Hello client!"), 0);
+        close_server(connfd);
     }
 
     return NULL;
@@ -38,6 +37,7 @@ int main(int argc, char **argv)
         printf("Usage: %s <port>\n", argv[0]);
         exit(1);
     }
+    setbuf(stdout, NULL);
     int sockfd = setup_server(atoi(argv[1]));
 
     pthread_t threads[MAX_THREADS];

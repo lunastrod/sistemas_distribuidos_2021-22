@@ -16,6 +16,7 @@ int main(int argc, char **argv)
         printf("Usage: %s <id> <ip> <port>\n", argv[0]);
         exit(1);
     }
+    setbuf(stdout, NULL);
     int sockfd;
     sockfd = setup_client(argv[2], atoi(argv[3]));
 

@@ -103,7 +103,7 @@ void send_recv(int sockfd) {
     // stdin tambien
     err(1, "select error");
   }
-  printf("end");
+  printf("\n");
   
   
   

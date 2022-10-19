@@ -31,6 +31,7 @@ void int_handler(int sig)
 
 int main()
 {
+    setbuf(stdout, NULL);
     int sockfd = setup_server(PORT);
     int connfd = accept_new_client(sockfd);
     while (running)

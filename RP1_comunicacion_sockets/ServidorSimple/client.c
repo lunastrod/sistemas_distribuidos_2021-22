@@ -29,8 +29,9 @@ void stdin_send_str(int sockfd)
 
 int main()
 {
+    setbuf(stdout, NULL);
     int sockfd;
-    sockfd = setup_client("212.128.254.141", PORT);
+    sockfd = setup_client("0.0.0.0", PORT);
 
     while (running)
     {

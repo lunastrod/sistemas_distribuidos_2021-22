@@ -12,6 +12,7 @@ void int_handler(int sig) {
 }
 
 int main(){
+    setbuf(stdout, NULL);
     int sockfd;
     sockfd=setup_client("127.0.0.1",PORT);
     while (running){
