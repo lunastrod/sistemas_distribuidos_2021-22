@@ -50,11 +50,11 @@ struct message {
 };
 
 
-char my_name[NAME_SIZE];
-char my_ip[16];
-unsigned int my_port;
-int my_sockfd;
-int client_connfds[N_CLIENTS];//para guardar connfd de p1 y p3 en ese orden
+extern char my_name[NAME_SIZE];
+extern char my_ip[16];
+extern unsigned int my_port;
+extern int my_sockfd;
+extern int client_connfds[N_CLIENTS];//para guardar connfd de p1 y p3 en ese orden
 
 // Establece el nombre del proceso (para los logs y trazas)
 void set_name (char name[2]);

@@ -14,14 +14,15 @@ all: $(TARGET1) $(TARGET2) $(TARGET3)
 
 #link del target con todos los objetos
 #$@ hace referencia a TARGET1
+#$^ hace referencia a OBJS1
 $(TARGET1) : $(OBJS1)
-	gcc $(OBJS1) -o $@ $(CFLAGS)
+	gcc $^ -o $@ $(CFLAGS)
 
 $(TARGET2) : $(OBJS2)
-	gcc $(OBJS2) -o $@ $(CFLAGS) 
+	gcc $^ -o $@ $(CFLAGS) 
 
 $(TARGET3) : $(OBJS3)
-	gcc $(OBJS3) -o $@ $(CFLAGS)
+	gcc $^ -o $@ $(CFLAGS)
 
 #regla para compilar cada objeto
 #ejemplo: gcc -c -Wall main.c -o main.o
