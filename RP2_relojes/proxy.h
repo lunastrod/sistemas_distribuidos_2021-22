@@ -8,79 +8,63 @@
 //sockets
 #include <arpa/inet.h>
 
-/*
-MACRO PARA PONER TRAZAS
-usage: TDEB("ip:%s port%d",ip,port);
-asi son mas faciles de quitar para hacer la entrega
-*/
-#define TDEB(...) fprintf(stderr,"DEBUG: "__VA_ARGS__); fprintf(stderr,"\n")
-
 enum operations {
     READY_TO_SHUTDOWN = 0,
     SHUTDOWN_NOW,
     SHUTDOWN_ACK
 };
 enum{
-    NAME_SIZE=20,
-    IP_SIZE=16,
-    N_CLIENTS=2
+    NAME_SIZE=20, //size of client names
+    IP_SIZE=16,   //size of ip
+    N_CLIENTS=2   //number of clients
 };
 
 #define SERVER_NAME "p2"
 #define CLIENT0_NAME "p1"
 #define CLIENT1_NAME "p2"
 
-const char client_names[NAME_SIZE][N_CLIENTS]={CLIENT0_NAME,CLIENT1_NAME};
-
-
-
-
 /*
-El campo origin contendrá el nombre del proceso que envía el mensaje.
-El campo action podrá contener valores del enumerado operations:
-· READY_TO_SHUTDOWN: la máquina notifica que está lista para apagarse.
-· SHUTDOWN_NOW: Al recibir este mensaje la máquina sabe que debe apagarse.
-· SHUTDOWN_ACK: La máquina manda este mensaje antes justo de realizar el shutdown.
-El campo clock_lamport es utilizado para enviar el contador de lamport.
+The origin field will contain the name of the process that sends the message.
+The action field can contain values ​​from the operations enumerated:
+· READY_TO_SHUTDOWN: the machine notifies that it is ready to shut down.
+· SHUTDOWN_NOW: When receiving this message the machine knows that it must shut down.
+· SHUTDOWN_ACK: The machine sends this message just before performing the shutdown.
+The clock_lamport field is used to send the lamport counter.
 */
+
 struct message {
     char origin[20];
     enum operations action;
     unsigned int clock_lamport;
 };
 
-
+extern const char client_names[NAME_SIZE][N_CLIENTS];
 extern char my_name[NAME_SIZE];
 extern char my_ip[16];
 extern unsigned int my_port;
 extern int my_sockfd;
-extern int client_connfds[N_CLIENTS];//para guardar connfd de p1 y p3 en ese orden
+extern int client_connfds[N_CLIENTS];//client_connfds[0] is p1, client_connfds[1] is p3
 
-// Establece el nombre del proceso (para los logs y trazas)
+//sets process name (to display in logs)
 void set_name (char name[2]);
-// Establecer ip y puerto
+// set ip and port (to display in logs)
 void set_ip_port (char* ip, unsigned int port);
-// Obtiene el valor del reloj de lamport.
-// Utilizalo cada vez que necesites consultar el tiempo.
+// Get the value of the lamport clock.
 int get_clock_lamport();
-// Notifica que está listo para realizar el apagado (READY_TO_SHUTDOWN)
+// Notifies that is ready to shutdown
 void notify_ready_shutdown();
-// Notifica que va a realizar el shutdown correctamente (SHUTDOWN_ACK)
+// Notifies that it is going to perform the shutdown (SHUTDOWN_ACK)
 void notify_shutdown_ack();
-
-
-//el servidor responde que el cliente puede apagarse (SHUTDOWN_NOW)
+//the server responds that the client can shutdown (SHUTDOWN_NOW)
 void send_shutdown_now();
 
-//connects client to server returns: int sockfd
 int setup_client(char* ip, int port);
-//setup server listen returns: int sockfd
 int setup_server(int port);
-//returns: connfd
 int accept_new_client(int sockfd);
-void close_client();
-void close_server();
 
+void close_socket();
 
+void simple_send(int sockfd, void *buffer, int buffer_size, int send_flags);
+void simple_recv(int sockfd, void *buffer, int buffer_size, int recv_flags);
 
 void print_event(char*p_name, int lamport ,int8_t is_recv, enum operations action);
