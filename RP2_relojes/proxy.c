@@ -1,54 +1,19 @@
 #include "proxy.h"
 
-const char client_names[NAME_SIZE][N_CLIENTS] = {CLIENT0_NAME, CLIENT1_NAME};
 char my_name[NAME_SIZE];
 char my_ip[16];
 unsigned int my_port;
-int my_sockfd;
-int client_connfds[N_CLIENTS];
-
+unsigned int local_clock_lamport;
 /*
-void print_event(char*p_name, int lamport ,int8_t is_recv, enum operations
-action){ char action_name[50]; switch (action){ case READY_TO_SHUTDOWN:
-            strncpy(action_name,"READY_TO_SHUTDOWN",50);
-            break;
-        case SHUTDOWN_NOW:
-            strncpy(action_name,"SHUTDOWN_NOW",50);
-            break;
-        case SHUTDOWN_ACK:
-            strncpy(action_name,"SHUTDOWN_ACK",50);
-            break;
-    }
-
-    if(is_recv){
-        //PX, contador_lamport, SEND, operations
-        printf("%s, %d, SEND, %s",my_name,lamport,action_name);
-    }
-    else{
-        //PX, contador_lamport, RECV (PY), operations
-        printf("%s, %d, RECV (%s), %s",my_name,lamport,p_name,action_name);
-    }
-}
+    the clock_lamport field is used to send the lamport counter.
+    its value is incremented every time a message is sent.
+    when a message is received, the value of the clock_lamport field is updated
+    with the maximum value between the local clock_lamport and the received clock_lamport.
 */
 
-// Establece el nombre del proceso (para los logs y trazas)
-void set_name(char name[2]) {
-    bzero(my_name, NAME_SIZE);
-    memcpy(my_name, name, 2);
-}
-// Establecer ip y puerto (para los logs y trazas)
-void set_ip_port(char *ip, unsigned int port) {
-    strncpy(my_ip, ip, IP_SIZE - 1);
-    my_name[IP_SIZE - 1] = '\0';
-    my_port = port;
-    if (0 == strncmp(my_name, SERVER_NAME, NAME_SIZE)) {
-        my_sockfd = setup_server(port);
-    } else {
-        my_sockfd = setup_client(ip, port);
-    }
-}
-
 int setup_client(char *ip, int port) {
+    // remove stdout buffer
+    setbuf(stdout, NULL);
     // create socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -73,6 +38,8 @@ int setup_client(char *ip, int port) {
 }
 
 int setup_server(int port) {
+    // remove stdout buffer
+    setbuf(stdout, NULL);
     // create socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -149,4 +116,108 @@ void simple_send(int sockfd, void *buffer, int buffer_size, int send_flags) {
         }
         bytes_sent += bytes;
     }
+}
+
+int maximum(int a1, int a2) {
+    if (a1 > a2)
+        return a1;
+    else
+        return a2;
+}
+
+void recv_ready_shutdown(int connfd, char *pname) {
+    struct message msg;
+    simple_recv(connfd, &msg, sizeof(struct message), 0);
+    print_event(msg.origin, msg.clock_lamport, 1, READY_TO_SHUTDOWN);
+    // update local clock
+    local_clock_lamport = maximum(get_clock_lamport(), msg.clock_lamport) + 1;
+    // update pname
+    strcpy(pname, msg.origin);
+}
+
+void send_ready_shutdown(int connfd) {
+    struct message msg;
+    msg.action = READY_TO_SHUTDOWN;
+    strncpy(msg.origin, my_name, NAME_SIZE);
+    // update local clock
+    msg.clock_lamport = get_clock_lamport();
+    print_event(msg.origin, msg.clock_lamport, 0, SHUTDOWN_ACK);
+    local_clock_lamport++;
+    simple_send(connfd, &msg, sizeof(struct message), 0);
+}
+
+void recv_shutdown_now(int connfd) {
+    struct message msg;
+    simple_recv(connfd, &msg, sizeof(struct message), 0);
+    print_event(msg.origin, msg.clock_lamport, 1, SHUTDOWN_NOW);
+    // update local clock
+    local_clock_lamport = maximum(get_clock_lamport(), msg.clock_lamport) + 1;
+}
+
+void send_shutdown_now(int connfd) {
+    struct message msg;
+    msg.action = SHUTDOWN_NOW;
+    strncpy(msg.origin, my_name, NAME_SIZE);
+    // update local clock
+    msg.clock_lamport = get_clock_lamport();
+    print_event(msg.origin, msg.clock_lamport, 0, SHUTDOWN_ACK);
+    local_clock_lamport++;
+    simple_send(connfd, &msg, sizeof(struct message), 0);
+}
+
+void recv_shutdown_ack(int connfd) {
+    struct message msg;
+    simple_recv(connfd, &msg, sizeof(struct message), 0);
+    print_event(msg.origin, msg.clock_lamport, 1, SHUTDOWN_ACK);
+    // update local clock
+    local_clock_lamport = maximum(get_clock_lamport(), msg.clock_lamport) + 1;
+}
+
+void send_shutdown_ack(int connfd) {
+    struct message msg;
+    msg.action = SHUTDOWN_ACK;
+    strncpy(msg.origin, my_name, NAME_SIZE);
+    // update local clock
+    msg.clock_lamport = get_clock_lamport();
+    print_event(msg.origin, msg.clock_lamport, 0, SHUTDOWN_ACK);
+    local_clock_lamport++;
+    simple_send(connfd, &msg, sizeof(struct message), 0);
+}
+
+void print_event(char *p_name, int lamport, int8_t is_recv, enum operations action) {
+    char action_name[50];
+    char recv_text[50];
+    switch (action) {
+        case READY_TO_SHUTDOWN:
+            strncpy(action_name, "READY_TO_SHUTDOWN", 50);
+            break;
+        case SHUTDOWN_NOW:
+            strncpy(action_name, "SHUTDOWN_NOW", 50);
+            break;
+        case SHUTDOWN_ACK:
+            strncpy(action_name, "SHUTDOWN_ACK", 50);
+            break;
+    }
+    if (is_recv) {
+        snprintf(recv_text, 50, "RECV (%s)", p_name);
+    } else {
+        strncpy(recv_text, "SENT", 50);
+    }
+
+    // printf("%s: message %s %s from %s with lamport %d\n", my_name, recv_text, action_name, p_name, lamport);
+
+    printf("%s, %d, %s, %s\n", my_name, lamport, recv_text, action_name);
+}
+
+void set_name(char *name) {
+    strncpy(my_name, name, NAME_SIZE);
+}
+
+void set_ip_port(char *ip, unsigned int port) {
+    strncpy(my_ip, ip, IP_SIZE);
+    my_port = port;
+}
+
+int get_clock_lamport() {
+    return local_clock_lamport;
 }

@@ -1,22 +1,23 @@
-//std
+// std
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <err.h>
 #include <string.h>
+#include <unistd.h>
 
-//sockets
+// sockets
 #include <arpa/inet.h>
+#include <pthread.h>
 
 enum operations {
     READY_TO_SHUTDOWN = 0,
     SHUTDOWN_NOW,
     SHUTDOWN_ACK
 };
-enum{
-    NAME_SIZE=20, //size of client names
-    IP_SIZE=16,   //size of ip
-    N_CLIENTS=2   //number of clients
+enum {
+    NAME_SIZE = 20,  // size of client names
+    IP_SIZE = 16,    // size of ip
+    N_CLIENTS = 2    // number of clients
 };
 
 #define SERVER_NAME "p2"
@@ -38,33 +39,32 @@ struct message {
     unsigned int clock_lamport;
 };
 
-extern const char client_names[NAME_SIZE][N_CLIENTS];
 extern char my_name[NAME_SIZE];
 extern char my_ip[16];
 extern unsigned int my_port;
-extern int my_sockfd;
-extern int client_connfds[N_CLIENTS];//client_connfds[0] is p1, client_connfds[1] is p3
+extern unsigned int local_clock_lamport;
 
-//sets process name (to display in logs)
-void set_name (char name[2]);
-// set ip and port (to display in logs)
-void set_ip_port (char* ip, unsigned int port);
-// Get the value of the lamport clock.
-int get_clock_lamport();
-// Notifies that is ready to shutdown
-void notify_ready_shutdown();
-// Notifies that it is going to perform the shutdown (SHUTDOWN_ACK)
-void notify_shutdown_ack();
-//the server responds that the client can shutdown (SHUTDOWN_NOW)
-void send_shutdown_now();
+// SEND RECV FUNCTIONS
+void send_ready_shutdown(int connfd);                // void notify_ready_shutdown();
+void recv_ready_shutdown(int connfd, char *p_name);  // p_name is the name of the process that sent the message
 
-int setup_client(char* ip, int port);
-int setup_server(int port);
-int accept_new_client(int sockfd);
+void send_shutdown_now(int connfd);
+void recv_shutdown_now(int connfd);
 
-void close_socket();
+void send_shutdown_ack(int connfd);  // void notify_shutdown_ack();
+void recv_shutdown_ack(int connfd);
 
 void simple_send(int sockfd, void *buffer, int buffer_size, int send_flags);
 void simple_recv(int sockfd, void *buffer, int buffer_size, int recv_flags);
 
-void print_event(char*p_name, int lamport ,int8_t is_recv, enum operations action);
+// SETUP FUNCTIONS
+int setup_client(char *ip, int port);
+int setup_server(int port);
+int accept_new_client(int sockfd);
+void close_socket(int sockfd);
+
+void set_name(char *name);
+void set_ip_port(char *ip, unsigned int port);
+
+void print_event(char *p_name, int lamport, int8_t is_recv, enum operations action);
+int get_clock_lamport();

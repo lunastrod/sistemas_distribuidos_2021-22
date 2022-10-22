@@ -1,10 +1,7 @@
 #include "proxy.h"
 
-int local_lamport_counter=0;
-
-
 /*
-DONE 1. P1 y P3 notifican a P2 que están listos para apagarse (READY_TO_SHUTDOWN)
+1. P1 y P3 notifican a P2 que están listos para apagarse (READY_TO_SHUTDOWN)
 2. P2 recibe los mensajes y envía a P1 la orden de apagarse. (SHUTDOWN_NOW)
 3. P1 recibe el mensaje y envía a P2 el ACK de apagado. (SHUTDOWN_ACK)
 4. P2 recibe el mensaje y envía a P3 la orden de apagarse. (SHUTDOWN_NOW)
@@ -12,90 +9,59 @@ DONE 1. P1 y P3 notifican a P2 que están listos para apagarse (READY_TO_SHUTDOW
 6. P2 recibe el mensaje
 */
 
-void recv_ready_shutdown(){
-    int client_counter=N_CLIENTS;
-    while(client_counter>0){
-        int new_connfd=accept_new_client(my_sockfd);
-        struct message msg;
-        int ret_recv = recv(new_connfd, &msg, sizeof(msg), MSG_DONTWAIT);
-        if(ret_recv!=sizeof(msg)){
-            warnx("recv failed, client discarded");
-            continue;
-        }
-        //TODO:lamport;
-        if(msg.action!=READY_TO_SHUTDOWN){
-            warnx("invalid message format, client discarded");
-            continue;
-        }
-        for(int i=0; i<N_CLIENTS; i++){
-            if(0==strncmp(msg.origin,client_names[i],NAME_SIZE)){
-                //client accepted
-                client_connfds[i]=new_connfd;
-                client_counter--;
-                break;
-            }
-        }
+// preguntar al profesor si esta bien no usar el contador lamport aqui si respeto el orden de los mensajes
+
+void *thread_comm(void *arg) {
+    int sockfd = *((int *)arg);
+
+    int connfdp1 = accept_new_client(sockfd);
+    int connfdp3 = accept_new_client(sockfd);
+
+    char pname[NAME_SIZE];
+    // p1 and p3 are ready to shutdown
+    recv_ready_shutdown(connfdp1, pname);
+    recv_ready_shutdown(connfdp3, pname);
+
+    if (strcmp(pname, "P1") == 0) {
+        // swap connfdp1 and connfdp3
+        int tmp = connfdp1;
+        connfdp1 = connfdp3;
+        connfdp3 = tmp;
     }
+
+    // send shutdown now to p1
+    send_shutdown_now(connfdp1);
+    recv_shutdown_ack(connfdp1);
+
+    // send shutdown now to p3
+    send_shutdown_now(connfdp3);
+    recv_shutdown_ack(connfdp3);
+
+    close_socket(connfdp1);
+    close_socket(connfdp3);
+
+    return NULL;
 }
 
-int8_t recv_shutdown_ack(int connfd){
-    struct message msg;
-    int ret_recv = recv(connfd, &msg, sizeof(msg), MSG_DONTWAIT);
-    //if(ret_recv);
-    //if(msg.action==READY_TO_SHUTDOWN);
-    return 1;
-}
-
-void send_shutdown_now(char * name){
-    int connfd=-1;
-    for(int i=0; i<N_CLIENTS; i++){
-        if(0==strncmp(name,client_names[i],NAME_SIZE)){
-            connfd=client_connfds[i];
-            break;
-        }
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        errx(1, "usage: %s <ip> <port>", argv[0]);
     }
-    if(connfd==-1){
-        warn("send_shutdown_now: %s invalid client name",name);
-        return;
+
+    set_name("P2");
+    set_ip_port(argv[1], atoi(argv[2]));
+
+    int sockfd = setup_server(my_port);
+    pthread_t thread1;
+    if (pthread_create(&thread1, NULL, thread_comm, &sockfd) != 0) {
+        err(1, "pthread_create");
     }
-    
-    //TODO: lamport
-    print_event(name, 0 ,0, SHUTDOWN_NOW);
-
-    
-    struct message msg;
-    strncpy(msg.origin,my_name,NAME_SIZE);
-    //msg.clock_lamport=local_lamport_counter;
-    msg.action=SHUTDOWN_NOW;
-    send(connfd,&msg,sizeof(msg),0);
-}
-
-int8_t everyone_ready(int8_t * is_ready, int is_ready_size){
-    int8_t result=1;
-    for(int i=0; i<is_ready_size; i++){
-        result=result&is_ready[i];
+    printf("thread created\n");
+    if (pthread_join(thread1, NULL) != 0) {
+        err(1, "pthread_join");
     }
-    return result;
-}
-
-int main(){
-    set_name("p2");
-    set_ip_port("127.0.0.1",8080);
-
-    //accept all clients
-    //recv ready to shutdown from everyone
-    recv_ready_shutdown();
-
-    //P2 recibe los mensajes y envía a P1 la orden de apagarse. (SHUTDOWN_NOW)
-    //P1 recibe el mensaje y envía a P2 el ACK de apagado. (SHUTDOWN_ACK)
-    send_shutdown_now(CLIENT0_NAME);
-
-    //P2 recibe el mensaje y envía a P3 la orden de apagarse. (SHUTDOWN_NOW)
-    //P3 recibe el mensaje y envía a P2 el ACK de apagado. (SHUTDOWN_ACK)
-    send_shutdown_now(CLIENT1_NAME);
-
-
-    close_server();
+    printf("Los clientes fueron correctamente apagados en t(lamport) = %d\n", get_clock_lamport());
+    close_socket(sockfd);
 
     return 0;
 }
