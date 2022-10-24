@@ -45,6 +45,7 @@ extern unsigned int my_port;
 extern unsigned int local_clock_lamport;
 
 // SEND RECV FUNCTIONS
+/*
 void send_ready_shutdown(int connfd);                // void notify_ready_shutdown();
 void recv_ready_shutdown(int connfd, char *p_name);  // p_name is the name of the process that sent the message
 
@@ -53,6 +54,10 @@ void recv_shutdown_now(int connfd);
 
 void send_shutdown_ack(int connfd);  // void notify_shutdown_ack();
 void recv_shutdown_ack(int connfd);
+*/
+
+void send_message(int connfd, struct message *msg);
+void recv_message(int connfd, struct message *msg);
 
 void simple_send(int sockfd, void *buffer, int buffer_size, int send_flags);
 void simple_recv(int sockfd, void *buffer, int buffer_size, int recv_flags);

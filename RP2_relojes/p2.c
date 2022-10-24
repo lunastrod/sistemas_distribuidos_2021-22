@@ -10,7 +10,7 @@
 */
 
 // preguntar al profesor si esta bien no usar el contador lamport aqui si respeto el orden de los mensajes
-
+/*
 void *thread_comm(void *arg) {
     int sockfd = *((int *)arg);
 
@@ -42,6 +42,15 @@ void *thread_comm(void *arg) {
 
     return NULL;
 }
+*/
+
+void *thread_recv_ready_shutdown(void *arg) {
+    int connfd = *((int *)arg);
+
+    recv_ready_shutdown(connfd, "P1");
+    send
+}
+/*^
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -54,6 +63,33 @@ int main(int argc, char *argv[]) {
     int sockfd = setup_server(my_port);
     pthread_t thread1;
     if (pthread_create(&thread1, NULL, thread_comm, &sockfd) != 0) {
+        err(1, "pthread_create");
+    }
+    printf("thread created\n");
+    if (pthread_join(thread1, NULL) != 0) {
+        err(1, "pthread_join");
+    }
+    printf("Los clientes fueron correctamente apagados en t(lamport) = %d\n", get_clock_lamport());
+    close_socket(sockfd);
+
+    return 0;
+}
+*/
+
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        errx(1, "usage: %s <ip> <port>", argv[0]);
+    }
+
+    set_name("P2");
+    set_ip_port(argv[1], atoi(argv[2]));
+
+    int sockfd = setup_server(my_port);
+    int connfdp1 = accept_new_client(sockfd);
+    int connfdp3 = accept_new_client(sockfd);
+
+    pthread_t thread1;
+    if (pthread_create(&thread1, NULL, thread_recv_ready_shutdown, &connfdp1) != 0) {
         err(1, "pthread_create");
     }
     printf("thread created\n");

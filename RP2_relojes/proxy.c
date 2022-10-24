@@ -221,3 +221,15 @@ void set_ip_port(char *ip, unsigned int port) {
 int get_clock_lamport() {
     return local_clock_lamport;
 }
+
+void send_message(int connfd, struct message *msg){
+    // update local lamport clock
+    local_clock_lamport++;
+    simple_send(connfd, msg, sizeof(struct message), 0);
+}
+
+void recv_message(int connfd, struct message *msg){
+    simple_recv(connfd, msg, sizeof(struct message), 0);
+    // update local lamport clock
+    local_clock_lamport = maximum(get_clock_lamport(), msg->clock_lamport) + 1;
+}
