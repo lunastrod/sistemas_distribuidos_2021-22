@@ -9,7 +9,7 @@
 6. P2 recibe el mensaje
 */
 
-/*
+
 void *thread_comm(void *arg) {
     int sockfd = *((int *)arg);
 
@@ -41,7 +41,7 @@ void *thread_comm(void *arg) {
 
     return NULL;
 }
-*/
+
 /*^
 
 int main(int argc, char *argv[]) {
@@ -85,7 +85,9 @@ struct thread_args {
     struct message msg;
 };
 
-void * send(void *arg){
+/*
+
+void * thread_send(void *arg){
     struct thread_args *args = (struct thread_args *)arg;
     int connfd = args->connfd;
     int wait_until_lamport = args->wait_until_lamport;
@@ -95,7 +97,7 @@ void * send(void *arg){
     return NULL;
 }
 
-void * recv(void *arg){
+void * thread_recv(void *arg){
     struct thread_args *args = (struct thread_args *)arg;
     int connfd = args->connfd;
     int wait_until_lamport = args->wait_until_lamport;
@@ -109,6 +111,64 @@ void * recv(void *arg){
     if (strcmp(msg.origin, expected_msg.origin) != 0) {
         errx(1, "expected message name %s, got %s", expected_msg.origin, msg.origin);
     }
+    return NULL;
+}
+*/
+
+void * thread_comm(void * arg){
+    int sockfd = *((int *)arg);
+    int connfdp1 = accept_new_client(sockfd);
+    int connfdp3 = accept_new_client(sockfd);
+
+    while(get_clock_lamport() < 7){
+        struct message msg;
+        strncpy(msg.origin, "P2", NAME_SIZE);
+        if(get_clock_lamport() < 3){
+            struct msg_recv;
+            recv_message(connfdp1, &msg_recv);
+            if (msg_recv.action != READY_TO_SHUTDOWN) {
+                errx(1, "expected message type %d, got %d", READY_TO_SHUTDOWN, msg_recv.action);
+            }
+            recv_message(connfdp3, &msg_recv);
+            if (msg_recv.action != READY_TO_SHUTDOWN) {
+                errx(1, "expected message type %d, got %d", READY_TO_SHUTDOWN, msg_recv.action);
+            }
+            if (strcmp(pname, "P1") == 0) {
+                // swap connfdp1 and connfdp3
+                int tmp = connfdp1;
+                connfdp1 = connfdp3;
+                connfdp3 = tmp;
+            }
+            continue;
+        }
+        if(get_clock_lamport() == 4){
+            msg.action = SHUTDOWN_NOW;
+            send_message(connfdp1, &msg);
+            continue;
+        }
+        if(get_clock_lamport() == 5){
+            struct msg_recv;
+            recv_message(connfdp1, &msg_recv);
+            if (msg_recv.action != SHUTDOWN_ACK) {
+                errx(1, "expected message type %d, got %d", SHUTDOWN_ACK, msg_recv.action);
+            }
+            continue;
+        }
+        if(get_clock_lamport() == 6){
+            msg.action = SHUTDOWN_NOW;
+            send_message(connfdp3, &msg);
+            continue;
+        }
+        if(get_clock_lamport() == 7){
+            struct msg_recv;
+            recv_message(connfdp3, &msg_recv);
+            if (msg_recv.action != SHUTDOWN_ACK) {
+                errx(1, "expected message type %d, got %d", SHUTDOWN_ACK, msg_recv.action);
+            }
+            continue;
+        }
+    }
+
     return NULL;
 }
 
@@ -143,5 +203,4 @@ int main(int argc, char *argv[]) {
     if (pthread_create(&thread2, NULL, recv, &args2) != 0) {
         err(1, "pthread_create");
     }
-
-            
+}  
