@@ -9,7 +9,7 @@
 6. P2 recibe el mensaje
 */
 
-
+/*
 void *thread_comm(void *arg) {
     int sockfd = *((int *)arg);
 
@@ -41,6 +41,7 @@ void *thread_comm(void *arg) {
 
     return NULL;
 }
+*/
 
 /*^
 
@@ -78,12 +79,13 @@ int main(int argc, char *argv[]) {
 // use a while loop that checks the lamport clock and receives the messages in the correct orde
 // use a thread to receive and send the messages from P1 and P3
 // don't use a mutex to protect the critical section, assume that the lamport clock is atomic
-
+/*
 struct thread_args {
     int connfd;
     int wait_until_lamport;
     struct message msg;
 };
+*/
 
 /*
 
@@ -133,7 +135,7 @@ void * thread_comm(void * arg){
             if (msg_recv.action != READY_TO_SHUTDOWN) {
                 errx(1, "expected message type %d, got %d", READY_TO_SHUTDOWN, msg_recv.action);
             }
-            if (strcmp(pname, "P1") == 0) {
+            if (strcmp(msg_recv.origin, "P1") == 0) {
                 // swap connfdp1 and connfdp3
                 int tmp = connfdp1;
                 connfdp1 = connfdp3;
@@ -181,26 +183,8 @@ int main(int argc, char *argv[]) {
     set_ip_port(argv[1], atoi(argv[2]));
 
     int sockfd = setup_server(my_port);
-    int connfd1 = accept_new_client(sockfd);
-    int connfd2 = accept_new_client(sockfd);
 
-    struct thread_args args1;
-    args1.connfd = connfd1;
-    args1.wait_until_lamport = 3;
-    args1.msg.action = READY_TO_SHUTDOWN;
-    strcpy(args1.msg.origin, "P2");
-    pthread_t thread1;
-    if (pthread_create(&thread1, NULL, recv, &args1) != 0) {
-        err(1, "pthread_create");
-    }
-
-    struct thread_args args2;
-    args2.connfd = connfd2;
-    args2.wait_until_lamport = 3;
-    args2.msg.action = READY_TO_SHUTDOWN;
-    strcpy(args2.msg.origin, "P2");
-    pthread_t thread2;
-    if (pthread_create(&thread2, NULL, recv, &args2) != 0) {
+    if(pthread_create(&thread1, NULL, thread_comm, &sockfd) != 0){
         err(1, "pthread_create");
     }
 }  

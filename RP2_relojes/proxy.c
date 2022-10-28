@@ -209,6 +209,7 @@ void print_event(char *p_name, int lamport, int8_t is_recv, enum operations acti
     printf("%s, %d, %s, %s\n", my_name, lamport, recv_text, action_name);
 }
 
+//writes name to my_name
 void set_name(char *name) {
     strncpy(my_name, name, NAME_SIZE);
 }
