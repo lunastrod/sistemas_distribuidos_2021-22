@@ -224,13 +224,20 @@ int get_clock_lamport() {
 }
 
 void send_message(int connfd, struct message *msg) {
+    //printf("Sending message\n");
     // update local lamport clock
+    //printf("incrementing lamport clock from %d to %d\n", local_clock_lamport, local_clock_lamport + 1);
     local_clock_lamport++;
+    msg->clock_lamport = local_clock_lamport;
     simple_send(connfd, msg, sizeof(struct message), 0);
+    print_event(msg->origin, local_clock_lamport, 0, msg->action);
 }
 
 void recv_message(int connfd, struct message *msg) {
+    //printf("Receiving message\n");
     simple_recv(connfd, msg, sizeof(struct message), 0);
     // update local lamport clock
+    //printf("updating lamport clock from %d to %d, comparing %d and %d\n", local_clock_lamport, maximum(local_clock_lamport, msg->clock_lamport) + 1, local_clock_lamport, msg->clock_lamport);
     local_clock_lamport = maximum(get_clock_lamport(), msg->clock_lamport) + 1;
+    print_event(msg->origin, local_clock_lamport, 1, msg->action);
 }

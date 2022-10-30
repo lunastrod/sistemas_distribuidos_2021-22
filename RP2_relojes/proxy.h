@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 // sockets
 #include <arpa/inet.h>
+// threads
 #include <pthread.h>
 
 enum operations {
@@ -17,12 +17,7 @@ enum operations {
 enum {
     NAME_SIZE = 20,  // size of client names
     IP_SIZE = 16,    // size of ip
-    N_CLIENTS = 2    // number of clients
 };
-
-#define SERVER_NAME "p2"
-#define CLIENT0_NAME "p1"
-#define CLIENT1_NAME "p2"
 
 /*
 The origin field will contain the name of the process that sends the message.
