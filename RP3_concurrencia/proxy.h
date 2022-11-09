@@ -29,6 +29,7 @@ struct response {
 #define IP_SIZE 16
 #define CONNECT_RETRY 0 //(0 or 1)
 
+// #define MAX_SERVER_THREADS 250
 #define MAX_SERVER_THREADS 250
 
 // SETUP FUNCTIONS

@@ -75,24 +75,43 @@ void parse_args(int argc, char **argv, struct main_args *args) {
 }
 
 void *server_thread(void *args) {
+    // tests with counter.h and safe_access_counter()
+    struct thread_args *thread_args = (struct thread_args *)args;
+    int id = thread_args->id;
+    int priority = thread_args->priority;
+    int ratio = thread_args->ratio;
+    //int action = random() % 2; // 0: write, 1: read
+    long time_waiting;
+    int counter;
+    int action = READ;
+    if(id==0){
+        action = WRITE;
+    }
+
+    printf("I am a %s with id %d\n", action == READ ? "reader" : "writer", id);
+
+    while (1) {
+        counter=safe_access_counter(&time_waiting, action, id, priority, ratio);
+    }
+    counter++;//to avoid warning
+
+    return NULL;
+    /*
+    //socket
     struct thread_args *thread_args = (struct thread_args *)args;
     printf("Thread %d started\n", thread_args->id);
     int connfd = accept_new_client(thread_args->sockfd);
-    struct request req;
-    recv_request(connfd, &req);
-    long time_waiting;
-    int counter;
-    if (req.action == READ) {
-        counter = read_counter(connfd, &time_waiting);
-    } else if (req.action == WRITE) {
-        counter = increment_counter(connfd, &time_waiting);
-    } else {
-        printf("Invalid request\n");
+    while (1) {
+        struct request req;
+        recv_request(connfd, &req);
+        long time_waiting;
+        int counter = safe_access_counter(&time_waiting, req.action, req.id, thread_args->priority, thread_args->ratio);
+        send_response(connfd, req.action, counter, time_waiting);
     }
 
-    send_response(connfd, req.action, counter, time_waiting);
     printf("Thread %d finished\n", thread_args->id);
     return NULL;
+    */
 }
 
 int main(int argc, char **argv) {
@@ -100,6 +119,8 @@ int main(int argc, char **argv) {
     parse_args(argc, argv, &args);
     printf("port: %d, priority: %d, ratio: %d\n", args.port, args.priority, args.ratio);
     int sockfd = setup_server(args.port);
+
+    init_counter();
 
     // Create threads
     pthread_t threads[MAX_SERVER_THREADS];
