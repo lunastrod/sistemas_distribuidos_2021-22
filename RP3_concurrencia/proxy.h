@@ -30,7 +30,7 @@ struct response {
 #define CONNECT_RETRY 0 //(0 or 1)
 
 // #define MAX_SERVER_THREADS 250
-#define MAX_SERVER_THREADS 250
+#define MAX_SERVER_THREADS 10
 
 // SETUP FUNCTIONS
 int setup_client(char *ip, int port);
