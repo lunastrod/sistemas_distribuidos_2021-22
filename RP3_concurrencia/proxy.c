@@ -132,7 +132,6 @@ void send_response(int sockfd, enum operations action, unsigned int counter, lon
 
 void recv_response(int sockfd, struct response *response, int client_id) {
     simple_recv(sockfd, response, sizeof(*response), 0);
-    client_print(response, client_id);
 }
 
 void client_print(struct response *response, int id){

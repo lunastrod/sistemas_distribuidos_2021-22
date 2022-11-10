@@ -73,6 +73,7 @@ void parse_args(int argc, char **argv, struct main_args *args) {
 }
 
 void *server_thread(void *args) {
+    /*
     // tests with counter.h and safe_access_counter()
     struct thread_args *thread_args = (struct thread_args *)args;
     int id = thread_args->id;
@@ -92,7 +93,8 @@ void *server_thread(void *args) {
     counter++;//to avoid warning
 
     return NULL;
-    /*
+    */
+    
     //socket
     struct thread_args *thread_args = (struct thread_args *)args;
     printf("Thread %d started\n", thread_args->id);
@@ -101,13 +103,13 @@ void *server_thread(void *args) {
         struct request req;
         recv_request(connfd, &req);
         long time_waiting;
-        int counter = safe_access_counter(&time_waiting, req.action, req.id, thread_args->priority, thread_args->ratio);
+        int counter = safe_access_counter(&time_waiting, req.action, req.id);
         send_response(connfd, req.action, counter, time_waiting);
     }
 
     printf("Thread %d finished\n", thread_args->id);
     return NULL;
-    */
+    
 }
 
 int main(int argc, char **argv) {

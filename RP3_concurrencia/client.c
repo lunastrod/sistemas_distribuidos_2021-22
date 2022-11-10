@@ -87,11 +87,12 @@ void * client_thread(void *arg) {
     printf("Thread %d started with mode %d\n", args->id, args->mode);
     int connfd = setup_client(args->ip, args->port);
 
-    send_request(connfd, args->mode, args->id);
-
-    struct response res;
-    recv_response(connfd,&res, args->id);
-
+    while(1){
+        send_request(connfd, args->mode, args->id);
+        struct response res;
+        recv_response(connfd,&res, args->id);
+        client_print(&res, args->id);
+    }
     printf("Thread %d finished\n", args->id);
     pthread_exit(NULL);
 }
