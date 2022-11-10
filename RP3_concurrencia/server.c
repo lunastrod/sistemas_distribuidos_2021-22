@@ -16,8 +16,6 @@ struct main_args {
 
 struct thread_args {
     int sockfd;
-    int priority;
-    int ratio;
     int id;
 };
 
@@ -78,20 +76,18 @@ void *server_thread(void *args) {
     // tests with counter.h and safe_access_counter()
     struct thread_args *thread_args = (struct thread_args *)args;
     int id = thread_args->id;
-    int priority = thread_args->priority;
-    int ratio = thread_args->ratio;
     //int action = random() % 2; // 0: write, 1: read
     long time_waiting;
     int counter;
     int action = READ;
-    if(id==0){
+    if(id%2){
         action = WRITE;
     }
 
     printf("I am a %s with id %d\n", action == READ ? "reader" : "writer", id);
 
     while (1) {
-        counter=safe_access_counter(&time_waiting, action, id, priority, ratio);
+        counter=safe_access_counter(&time_waiting, action, id);
     }
     counter++;//to avoid warning
 
@@ -120,15 +116,13 @@ int main(int argc, char **argv) {
     printf("port: %d, priority: %d, ratio: %d\n", args.port, args.priority, args.ratio);
     int sockfd = setup_server(args.port);
 
-    init_counter();
+    init_counter(args.ratio, args.priority);
 
     // Create threads
     pthread_t threads[MAX_SERVER_THREADS];
     struct thread_args thread_args[MAX_SERVER_THREADS];
     for (int i = 0; i < MAX_SERVER_THREADS; i++) {
         thread_args[i].sockfd = sockfd;
-        thread_args[i].priority = args.priority;
-        thread_args[i].ratio = args.ratio;
         thread_args[i].id = i;
         pthread_create(&threads[i], NULL, server_thread, &thread_args[i]);
     }

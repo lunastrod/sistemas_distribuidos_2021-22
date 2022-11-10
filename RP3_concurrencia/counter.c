@@ -16,24 +16,16 @@ pthread_mutex_t writing;//writing to the critical section (w)
 int ratio_readers = 0;//number of readers that have been in the critical section, reset when a writer enters
 int ratio_writers = 0;//number of writers that have been in the critical section, reset when a reader enters
 pthread_mutex_t ratio_mutex;//mutex for ratio variables
-//pthread_mutex_t starving;//mutex to avoid starvation, should be a condvar to use pthread_cond_broadcast
 pthread_cond_t starving;//condvar to avoid starvation
-/*
-CONDITIONAL VARIABLES:
-they work like this:
-pthread_cond_wait(condvar, mutex) -> unlocks the mutex and waits for the condvar to be signaled
-pthread_cond_signal(condvar) -> signals the condvar, if there's a thread waiting for it, it will be woken up
-pthread_cond_broadcast(condvar) -> signals the condvar, if there's a thread waiting for it, it will be woken up, and if there's more than one, they will all be woken up
-*/
 
-//if a ratio goal variable is -1, then ignore the ratio
 int ratio_readers_goal = -1;//number of readers that have to have been in the critical section before a writer can enter, set in init_counter()
 int ratio_writers_goal = -1;//number of writers that have to have been in the critical section before a reader can enter, set in init_counter()
 
+int priority;//0 for readers, 1 for writers, set in init_counter()
 
 
 
-void init_counter(){
+void init_counter(int ratio, enum counter_operations _priority){
     /*
     Initialize the counter to the value in the file and the mutex
     */
@@ -44,8 +36,15 @@ void init_counter(){
     pthread_mutex_init(&writing, NULL);
     pthread_mutex_init(&ratio_mutex, NULL);
 
-    ratio_readers_goal = 100;//makes sense if reader priority
-    //ratio_writers_goal = 5;//makes sense if writer priority
+    //init priority and ratio
+    if(ratio>0){
+        if(_priority==COUNTER_READ){
+            ratio_readers_goal = ratio;
+        }else{
+            ratio_writers_goal = ratio;
+        }
+    }
+    priority = _priority;
 
     //if file exists, read counter from the last line of the file
     FILE *file = fopen(COUNTER_FILENAME, "r");
@@ -112,7 +111,7 @@ void access_counter(enum counter_operations action, int id, struct timespec star
     else if(action == COUNTER_INCREMENT){
         counter++;
         printf("[%ld.%ld][ESCRITOR #%d] modifica contador con valor %d\n", end_wait.tv_sec, end_wait.tv_nsec, id, counter);
-        //write_to_file();
+        write_to_file();
     }
     *counter_value = counter; //return counter value
     usleep((rand() % 75 + 75) * 1000);
@@ -171,7 +170,7 @@ void check_ratio(enum counter_operations action){
     return;
 }
 
-int safe_access_counter(long *time_waiting, int action, int id, int priority, int ratio){
+int safe_access_counter(long *time_waiting, int action, int id){
     /*
         Safe access to the counter protected by mutex, uses priority and ratio to decide which threads can access the critical section
         args:
