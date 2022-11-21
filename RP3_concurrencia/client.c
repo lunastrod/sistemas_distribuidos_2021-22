@@ -47,7 +47,7 @@ void parse_args(int argc, char **argv, struct main_args *args) {
             case 'p':
                 args->port = atoi(optarg);
                 if(args->port < 1024 || args->port > 65535){
-                    printf("Invalid port: %s (valid ports: 1024-65535)\n", optarg);
+                    warnx("Invalid port: %s (valid ports: 1024-65535)\n", optarg);
                     args->port = -1;
                 }
                 break;
@@ -60,15 +60,20 @@ void parse_args(int argc, char **argv, struct main_args *args) {
                     args->mode = WRITE;
                 } 
                 else {
-                    printf("Invalid mode: %s (valid modes: reader, writer)\n", optarg);
+                    warnx("Invalid mode: %s (valid modes: reader, writer)", optarg);
                 }
                 break;
             case 'n':
                 args->threads = atoi(optarg);
-                if(args->threads < 1){
-                    printf("Invalid number of threads: %s (valid numbers: > 0)\n", optarg);
-                    printf("Using 1 thread\n");
+                if(!(args->threads > 0)){
+                    warnx("Invalid number of threads: %s (valid numbers: n>0 && n<=1000)", optarg);
+                    warnx("Using 1 thread");
                     args->threads = 1;
+                }
+                if(!(args->threads <= 1000)){
+                    warnx("Invalid number of threads: %s (valid numbers: n>0 && n<=1000)", optarg);
+                    warnx("Using 1000 threads");
+                    args->threads = 1000;
                 }
                 break;
             default:
@@ -84,23 +89,21 @@ void parse_args(int argc, char **argv, struct main_args *args) {
 
 void * client_thread(void *arg) {
     struct thread_args *args = (struct thread_args *) arg;
-    printf("Thread %d started with mode %d\n", args->id, args->mode);
     int connfd = setup_client(args->ip, args->port);
 
-    while(1){
-        send_request(connfd, args->mode, args->id);
-        struct response res;
-        recv_response(connfd,&res, args->id);
-        client_print(&res, args->id);
-    }
-    printf("Thread %d finished\n", args->id);
-    pthread_exit(NULL);
+    send_request(connfd, args->mode, args->id);
+    struct response res;
+    recv_response(connfd,&res, args->id);
+    client_print(&res, args->id);
+    close(connfd);
+    
+    return NULL;//pthread_exit(NULL); is equivalent to return NULL and more reliable and portable
 }
 
 int main(int argc, char *argv[]) {
     struct main_args args;
     parse_args(argc, argv, &args);
-    printf("ip: %s, port: %d, mode: %d, threads: %d\n", args.ip, args.port, args.mode, args.threads);
+    //printf("ip: %s, port: %d, mode: %d, threads: %d\n", args.ip, args.port, args.mode, args.threads);
     
     pthread_t * threads = (pthread_t *) malloc(args.threads * sizeof(pthread_t));
     struct thread_args * thread_args = (struct thread_args *) malloc(args.threads * sizeof(struct thread_args));
@@ -111,12 +114,10 @@ int main(int argc, char *argv[]) {
         thread_args[i].id = i;
         pthread_create(&threads[i], NULL, client_thread, &thread_args[i]);
     }
-    printf("Threads created\n");
     for (int i = 0; i < args.threads; i++) {
         pthread_join(threads[i], NULL);
     }
     free(threads);
     free(thread_args);
-    printf("Threads joined\n");
     return 0;
 }

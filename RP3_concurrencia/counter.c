@@ -49,13 +49,13 @@ void init_counter(int ratio, enum counter_operations _priority){
     //if file exists, read counter from the last line of the file
     FILE *file = fopen(COUNTER_FILENAME, "r");
     if(file != NULL){
-        printf("Reading counter from file: %s\n", COUNTER_FILENAME);
+        //printf("Reading counter from file: %s\n", COUNTER_FILENAME);
         fseek(file, -MAX_LINE_SIZE, SEEK_END);
         char line[MAX_LINE_SIZE];
         while(fgets(line, MAX_LINE_SIZE, file) != NULL){
             //skips lines until the last one
         }
-        printf("Line: %s", line);
+        //printf("Line: %s", line);
         counter=atoi(line);
     }
     //if file does not exist, create it
@@ -332,7 +332,6 @@ void write_rp(int id, struct timespec start_wait, int *counter_value, long *time
     ratio_writers++;
     if(ratio_readers >= ratio_readers_goal && ratio_readers_goal!=-1){
         //there are readers waiting, wake them up, writers are not starving anymore
-        printf("who is waking up the readers? id %d\n", id);
         //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
         //printf("ratio_writers_goal: %d\n", ratio_readers_goal);
         //pthread_mutex_unlock(&starving);
@@ -342,5 +341,4 @@ void write_rp(int id, struct timespec start_wait, int *counter_value, long *time
     pthread_mutex_unlock(&ratio_mutex);
 
     pthread_mutex_unlock(&writing);
-    printf("WRITE i finished writing\n");
 }

@@ -39,7 +39,7 @@ void parse_args(int argc, char **argv, struct main_args *args) {
             case 'p':
                 args->port = atoi(optarg);
                 if (args->port < 1024 || args->port > 65535) {
-                    printf("Invalid port: %s (valid ports: 1024-65535)\n", optarg);
+                    warnx("Invalid port: %s (valid ports: 1024-65535)\n", optarg);
                     args->port = -1;
                 }
                 break;
@@ -50,14 +50,14 @@ void parse_args(int argc, char **argv, struct main_args *args) {
                 } else if (strcmp(optarg, "writer") == 0) {
                     args->priority = WRITE;
                 } else {
-                    printf("Invalid priority: %s (valid priorities: reader, writer)\n", optarg);
+                    warnx("Invalid priority: %s (valid priorities: reader, writer)\n", optarg);
                 }
                 break;
             case 't':
                 args->ratio = atoi(optarg);
                 if (args->ratio < 1) {
-                    printf("Invalid ratio: %s (valid ratios: > 0)\n", optarg);
-                    printf("Using default ratio\n");
+                    warnx("Invalid ratio: %s (valid ratios: > 0)\n", optarg);
+                    warnx("Using default ratio\n");
                     args->ratio = -1;
                 }
                 break;
@@ -67,7 +67,7 @@ void parse_args(int argc, char **argv, struct main_args *args) {
     }
     // Check arguments
     if (args->port == -1 || args->priority == -1) {
-        printf("Usage: %s --port <port> --priority <priority> [--ratio <ratio>]\n", argv[0]);
+        warnx("Usage: %s --port <port> --priority <priority> [--ratio <ratio>]\n", argv[0]);
         exit(1);
     }
 }
@@ -97,17 +97,17 @@ void *server_thread(void *args) {
     
     //socket
     struct thread_args *thread_args = (struct thread_args *)args;
-    printf("Thread %d started\n", thread_args->id);
-    int connfd = accept_new_client(thread_args->sockfd);
     while (1) {
+        int connfd = accept_new_client(thread_args->sockfd);
         struct request req;
         recv_request(connfd, &req);
         long time_waiting;
         int counter = safe_access_counter(&time_waiting, req.action, req.id);
         send_response(connfd, req.action, counter, time_waiting);
+        close_socket(connfd);
     }
 
-    printf("Thread %d finished\n", thread_args->id);
+    warnx("Thread %d finished\n", thread_args->id);
     return NULL;
     
 }
@@ -115,7 +115,7 @@ void *server_thread(void *args) {
 int main(int argc, char **argv) {
     struct main_args args;
     parse_args(argc, argv, &args);
-    printf("port: %d, priority: %d, ratio: %d\n", args.port, args.priority, args.ratio);
+    //printf("port: %d, priority: %d, ratio: %d\n", args.port, args.priority, args.ratio);
     int sockfd = setup_server(args.port);
 
     init_counter(args.ratio, args.priority);
@@ -128,11 +128,9 @@ int main(int argc, char **argv) {
         thread_args[i].id = i;
         pthread_create(&threads[i], NULL, server_thread, &thread_args[i]);
     }
-    printf("Created %d threads\n", MAX_SERVER_THREADS);
     // Wait for threads
     for (int i = 0; i < MAX_SERVER_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
-    printf("All threads finished\n");
     return 0;
 }

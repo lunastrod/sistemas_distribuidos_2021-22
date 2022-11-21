@@ -8,7 +8,7 @@ int setup_client(char *ip, int port) {
     if (sockfd == -1) {
         err(1, "Socket creation failed\n");
     } else {
-        printf("Socket successfully created\n");
+        //printf("Socket successfully created\n");
     }
     // assign ip and port
     struct sockaddr_in servaddr;
@@ -29,7 +29,7 @@ int setup_client(char *ip, int port) {
         }
     }
 
-    printf("Client conected to server\n");
+    //printf("Client conected to server\n");
     return sockfd;
 }
 
@@ -41,7 +41,7 @@ int setup_server(int port) {
     if (sockfd == -1) {
         err(1, "Socket creation failed\n");
     } else {
-        printf("Socket successfully created\n");
+        //printf("Socket successfully created\n");
     }
     // assign ip and port
     struct sockaddr_in servaddr;
@@ -55,14 +55,14 @@ int setup_server(int port) {
     if ((bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
         err(1, "Socket bind failed\n");
     } else {
-        printf("Socket successfully binded\n");
+        //printf("Socket successfully binded\n");
     }
 
     // listen to clients
     if ((listen(sockfd, 1000)) != 0) {
         err(1, "Listen failed\n");
     } else {
-        printf("Server listening\n");
+        //printf("Server listening\n");
     }
     return sockfd;
 }
@@ -72,7 +72,7 @@ int accept_new_client(int sockfd) {
     if (connfd < 0) {
         warn("Server accept failed\n");
     } else {
-        printf("Server accepts the client\n");
+        //printf("Server accepts the client\n");
     }
     return connfd;
 }
@@ -81,7 +81,7 @@ void close_socket(int sockfd) {
     if (close(sockfd) < 0) {
         warn("Socket close failed\n");
     } else {
-        printf("Socket successfully closed\n");
+        //printf("Socket successfully closed\n");
     }
 }
 

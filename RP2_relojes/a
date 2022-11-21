@@ -1,0 +1,4 @@
+main
+    Pepe=Usuario()
+    nombre=cin<<kjdfh;
+    Pepe.setNombre(nombre);
