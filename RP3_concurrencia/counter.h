@@ -32,5 +32,8 @@ void write_rp(int id, struct timespec start_wait, int *counter_value, long *time
 void read_wp(int id, struct timespec start_wait, int *counter_value, long *time_waiting);
 void write_wp(int id, struct timespec start_wait, int *counter_value, long *time_waiting);
 
+void check_ratio(enum counter_operations action);
+void signal_ratio(enum counter_operations action);
+
 // critical section
 void access_counter(enum counter_operations action, int id, struct timespec start_wait, int *counter_value, long *time_waiting);

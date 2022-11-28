@@ -1,31 +1,29 @@
 #include "counter.h"
 
-
 int counter = 0;
 
-int readers = 0;//number of readers in the critical section
-int writers = 0;//number of writers in the critical section
+int readers = 0;  // number of readers in the critical section
+int writers = 0;  // number of writers in the critical section
 
-pthread_mutex_t readers_mutex;//mutex for readers variable (mutex1)
-pthread_mutex_t writers_mutex;//mutex for writers variable (mutex2)
-pthread_mutex_t new_readers;//mutex to avoid new readers go past the readers_mutex when there's a writer (mutex3)
+pthread_mutex_t readers_mutex;  // mutex for readers variable (mutex1)
+pthread_mutex_t writers_mutex;  // mutex for writers variable (mutex2)
+pthread_mutex_t new_readers;    // mutex to avoid new readers go past the readers_mutex when there's a writer (mutex3)
 
-pthread_mutex_t reading;//reading the critical section (r)
-pthread_mutex_t writing;//writing to the critical section (w)
+pthread_mutex_t reading;  // reading the critical section (r)
+pthread_mutex_t writing;  // writing to the critical section (w)
 
-int ratio_readers = 0;//number of readers that have been in the critical section, reset when a writer enters
-int ratio_writers = 0;//number of writers that have been in the critical section, reset when a reader enters
-pthread_mutex_t ratio_mutex;//mutex for ratio variables
-pthread_cond_t starving;//condvar to avoid starvation
+int waiting_ratio_readers = 0;    // number of readers that have been in the critical section, reset when a writer enters
+pthread_mutex_t ratio_readers;    // mutex for ratio variables
+pthread_cond_t readers_starving;  // condvar to avoid starvation
 
-int ratio_readers_goal = -1;//number of readers that have to have been in the critical section before a writer can enter, set in init_counter()
-int ratio_writers_goal = -1;//number of writers that have to have been in the critical section before a reader can enter, set in init_counter()
+int waiting_ratio_writers = 0;    // number of writers that have been in the critical section, reset when a reader enters
+pthread_mutex_t ratio_writers;    // mutex for ratio variables
+pthread_cond_t writers_starving;  // condvar to avoid starvation
 
-int priority;//0 for readers, 1 for writers, set in init_counter()
+int ratio = 0;
+int priority;  // 0 for readers, 1 for writers, set in init_counter()
 
-
-
-void init_counter(int ratio, enum counter_operations _priority){
+void init_counter(int _ratio, enum counter_operations _priority) {
     /*
     Initialize the counter to the value in the file and the mutex
     */
@@ -34,49 +32,45 @@ void init_counter(int ratio, enum counter_operations _priority){
     pthread_mutex_init(&new_readers, NULL);
     pthread_mutex_init(&reading, NULL);
     pthread_mutex_init(&writing, NULL);
-    pthread_mutex_init(&ratio_mutex, NULL);
+    pthread_mutex_init(&ratio_readers, NULL);
 
-    //init priority and ratio
-    if(ratio>0){
-        if(_priority==COUNTER_READ){
-            ratio_readers_goal = ratio;
-        }else{
-            ratio_writers_goal = ratio;
-        }
+    // init priority and ratio
+    if (ratio > 0) {
+        ratio = _ratio;
     }
     priority = _priority;
 
-    //if file exists, read counter from the last line of the file
+    // if file exists, read counter from the last line of the file
     FILE *file = fopen(COUNTER_FILENAME, "r");
-    if(file != NULL){
-        //printf("Reading counter from file: %s\n", COUNTER_FILENAME);
+    if (file != NULL) {
+        // printf("Reading counter from file: %s\n", COUNTER_FILENAME);
         fseek(file, -MAX_LINE_SIZE, SEEK_END);
         char line[MAX_LINE_SIZE];
-        while(fgets(line, MAX_LINE_SIZE, file) != NULL){
-            //skips lines until the last one
+        while (fgets(line, MAX_LINE_SIZE, file) != NULL) {
+            // skips lines until the last one
         }
-        //printf("Line: %s", line);
-        counter=atoi(line);
+        // printf("Line: %s", line);
+        counter = atoi(line);
     }
-    //if file does not exist, create it
-    else{
+    // if file does not exist, create it
+    else {
         write_to_file();
     }
 }
 
-void write_to_file(){
+void write_to_file() {
     /*
         Writes the counter to the file
     */
     FILE *file = fopen(COUNTER_FILENAME, "a");
-    if(file == NULL){
+    if (file == NULL) {
         err(1, "Error opening file");
     }
     fprintf(file, "%d\n", counter);
     fclose(file);
 }
 
-long subtract_timespecs(struct timespec start, struct timespec end){
+long subtract_timespecs(struct timespec start, struct timespec end) {
     /*
     Returns the difference between two timespecs in nanoseconds
     */
@@ -88,11 +82,11 @@ long subtract_timespecs(struct timespec start, struct timespec end){
         result.tv_sec = end.tv_sec - start.tv_sec;
         result.tv_nsec = end.tv_nsec - start.tv_nsec;
     }
-    //convert to long (nanoseconds)
-    return result.tv_sec*1000000000 + result.tv_nsec;
+    // convert to long (nanoseconds)
+    return result.tv_sec * 1000000000 + result.tv_nsec;
 }
 
-void access_counter(enum counter_operations action, int id, struct timespec start_wait, int *counter_value, long *time_waiting){
+void access_counter(enum counter_operations action, int id, struct timespec start_wait, int *counter_value, long *time_waiting) {
     /*
         Critical section of the counter, it's not protected by a mutex
         args:
@@ -104,41 +98,28 @@ void access_counter(enum counter_operations action, int id, struct timespec star
     */
     struct timespec end_wait;
     clock_gettime(CLOCK_REALTIME, &end_wait);
-    *time_waiting = subtract_timespecs(start_wait, end_wait); //return time waiting in nanoseconds
-    if(action == COUNTER_READ){
+    *time_waiting = subtract_timespecs(start_wait, end_wait);  // return time waiting in nanoseconds
+    if (action == COUNTER_READ) {
         printf("[%ld.%ld][LECTOR #%d] lee contador con valor %d\n", end_wait.tv_sec, end_wait.tv_nsec, id, counter);
-    }
-    else if(action == COUNTER_INCREMENT){
+    } else if (action == COUNTER_INCREMENT) {
         counter++;
         printf("[%ld.%ld][ESCRITOR #%d] modifica contador con valor %d\n", end_wait.tv_sec, end_wait.tv_nsec, id, counter);
         write_to_file();
     }
-    *counter_value = counter; //return counter value
+    *counter_value = counter;  // return counter value
     usleep((rand() % 75 + 75) * 1000);
 }
-
+/*
 void check_ratio(enum counter_operations action){
-    /*
-        Checks if the ratio of readers/writers is respected
-        args:
-            action: operation to perform (read or write)
-    */
     pthread_mutex_lock(&ratio_mutex);
     if(action == COUNTER_READ){
         if(ratio_readers_goal==-1){
-            pthread_mutex_unlock(&ratio_mutex);
+            pthread_mutex_unlock(&ratio_mutex);//if ratio is not set, unlock and return
             return;
         }
         if(ratio_readers >= ratio_readers_goal){
-            //the writers are starving, wait
-            //pthread_mutex_unlock(&ratio_mutex);//unlock ratio_mutex before waiting
-            //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
-            //printf("writers are starving, reader waiting for them\n");
-            //pthread_mutex_lock(&starving);
-            pthread_cond_wait(&starving, &ratio_mutex);
-            //printf("writers are done, reader can continue\n");
-            //I still have to unlock ratio_mutex
-            pthread_mutex_unlock(&ratio_mutex);
+            pthread_cond_wait(&starving, &ratio_mutex);//if ratio is respected, wait
+            pthread_mutex_unlock(&ratio_mutex);//unlock and return when woken up
             return;
         }
     }
@@ -148,19 +129,6 @@ void check_ratio(enum counter_operations action){
             return;
         }
         if(ratio_writers >= ratio_writers_goal){
-            //the readers are starving, wait
-            //pthread_mutex_unlock(&ratio_mutex);//unlock the mutex before waiting
-            //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
-            //printf("readers are starving, writer waiting for them\n");
-
-            //it works with printf, but it doesn't work without it
-            //lets try sleeping for 1us
-            //usleep(1);
-            // ok, now it doesn't work without the sleep
-            // i'm going to try with a loop
-            //for (int i = 0; i < 10000; i++){}
-            // it works if the loop is bigger than 10000
-            //pthread_mutex_lock(&starving);
             pthread_cond_wait(&starving, &ratio_mutex);
             pthread_mutex_unlock(&ratio_mutex);
             return;
@@ -170,7 +138,111 @@ void check_ratio(enum counter_operations action){
     return;
 }
 
-int safe_access_counter(long *time_waiting, int action, int id){
+void signal_ratio(enum counter_operations action){
+   pthread_mutex_lock(&ratio_mutex);
+    if(action == COUNTER_READ){
+        ratio_readers++;
+        if(ratio_writers >= ratio_writers_goal && ratio_writers_goal!=-1){
+            for (int i = 0; i < ratio_writers_goal; i++){
+                pthread_cond_signal(&starving);
+            }
+            //pthread_cond_broadcast(&starving);
+        }
+        ratio_writers=0;
+    }
+    else{
+        ratio_writers++;
+        if(ratio_readers >= ratio_readers_goal && ratio_readers_goal!=-1){
+            for (int i = 0; i < ratio_readers_goal; i++){
+                pthread_cond_signal(&starving);
+            }
+            //pthread_cond_broadcast(&starving);
+        }
+        ratio_readers=0;
+    }
+    pthread_mutex_unlock(&ratio_mutex);
+}
+*/
+
+void check_ratio(enum counter_operations action) {
+    if(ratio==0){
+        return;
+    }
+
+    if (action == COUNTER_READ && priority == 0) {//if reader and priority is readers, ratio is in your favor
+        pthread_mutex_lock(&ratio_readers);
+        waiting_ratio_readers++;
+        if(waiting_ratio_writers==0){//if there are no writers waiting, unlock and return
+            pthread_mutex_unlock(&ratio_readers);
+            return;
+        }
+        
+        //if there are writers waiting
+        if (waiting_ratio_readers>ratio) {//and there are more readers than the ratio allows
+            pthread_cond_wait(&writers_starving, &ratio_readers);//wait
+            return;
+        }
+        //if there are less readers than the ratio allows
+        pthread_mutex_unlock(&ratio_readers);//unlock and return
+    }
+    if (action == COUNTER_INCREMENT && priority == 0) {//if writer and priority is readers
+        pthread_mutex_lock(&ratio_writers);
+        waiting_ratio_writers++;
+        if(waiting_ratio_readers==0){//if there are no readers waiting, unlock and return
+            pthread_mutex_unlock(&ratio_writers);
+            return;
+        }
+        //if there are readers waiting
+        if (waiting_ratio_writers>1) {//and there are more writers than the ratio allows
+            pthread_cond_wait(&readers_starving, &ratio_writers);//wait
+            return;
+        }
+        //if there are less writers than the ratio allows
+        pthread_mutex_unlock(&ratio_writers);//unlock and return
+    }
+}
+
+void signal_ratio(enum counter_operations action) {
+    if(ratio==0){
+        return;
+    }
+    if (action == COUNTER_READ && priority == 0) {//if reader and priority is readers
+        pthread_mutex_lock(&ratio_readers);
+        waiting_ratio_readers--;
+        if(waiting_ratio_writers==0){//if there are no writers waiting, unlock and return
+            pthread_mutex_unlock(&ratio_readers);
+            return;
+        }
+        //if there are writers waiting
+        if (waiting_ratio_readers>ratio) {//and there are more readers than the ratio allows
+            pthread_cond_signal(&writers_starving);//wake up a writer
+            pthread_mutex_unlock(&ratio_readers);//unlock and return
+            return;
+        }
+        //if there are less readers than the ratio allows
+        pthread_mutex_unlock(&ratio_readers);//unlock and return
+    }
+    if (action == COUNTER_INCREMENT && priority == 0) {//if writer and priority is readers
+        pthread_mutex_lock(&ratio_writers);
+        waiting_ratio_writers--;
+        if(waiting_ratio_readers==0){//if there are no readers waiting, unlock and return
+            pthread_mutex_unlock(&ratio_writers);
+            return;
+        }
+        //if there are readers waiting
+        if (waiting_ratio_writers>1) {//and there are more writers than the ratio allows
+            for (int i = 0; i < ratio; i++){
+                pthread_cond_signal(&readers_starving);//wake up ratio readers
+            }
+            pthread_mutex_unlock(&ratio_writers);//unlock and return
+            return;
+        }
+        //if there are less writers than the ratio allows
+        pthread_mutex_unlock(&ratio_writers);//unlock and return
+    }
+}
+
+int safe_access_counter(long *time_waiting, int action, int id) {
     /*
         Safe access to the counter protected by mutex, uses priority and ratio to decide which threads can access the critical section
         args:
@@ -186,38 +258,36 @@ int safe_access_counter(long *time_waiting, int action, int id){
     int counter_value;
     clock_gettime(CLOCK_REALTIME, &start_wait);
     check_ratio(action);
-    if(action==COUNTER_READ){
-        if(priority == COUNTER_INCREMENT){
-            //write priority
+    if (action == COUNTER_READ) {
+        if (priority == COUNTER_INCREMENT) {
+            // write priority
             read_wp(id, start_wait, &counter_value, time_waiting);
-        }
-        else if(priority == COUNTER_READ){
-            //read priority
+        } else if (priority == COUNTER_READ) {
+            // read priority
             read_rp(id, start_wait, &counter_value, time_waiting);
         }
-    }
-    else if(action==COUNTER_INCREMENT){
-        if(priority == COUNTER_INCREMENT){
-            //write priority
+    } else if (action == COUNTER_INCREMENT) {
+        if (priority == COUNTER_INCREMENT) {
+            // write priority
             write_wp(id, start_wait, &counter_value, time_waiting);
-        }
-        else if(priority == COUNTER_READ){
-            //read priority
+        } else if (priority == COUNTER_READ) {
+            // read priority
             write_rp(id, start_wait, &counter_value, time_waiting);
         }
     }
+    signal_ratio(action);
 
     return counter_value;
 }
 
-//reader with write priority
-void read_wp(int id, struct timespec start_wait, int *counter_value, long *time_waiting){
+// reader with write priority
+void read_wp(int id, struct timespec start_wait, int *counter_value, long *time_waiting) {
     pthread_mutex_lock(&new_readers);
     pthread_mutex_lock(&reading);
     pthread_mutex_lock(&readers_mutex);
-    readers++;//new reader in the critical section
-    //printf("readers++: %d\n", readers);
-    if(readers==1){
+    readers++;  // new reader in the critical section
+    // printf("readers++: %d\n", readers);
+    if (readers == 1) {
         pthread_mutex_lock(&writing);
     }
     pthread_mutex_unlock(&readers_mutex);
@@ -226,36 +296,21 @@ void read_wp(int id, struct timespec start_wait, int *counter_value, long *time_
 
     access_counter(COUNTER_READ, id, start_wait, counter_value, time_waiting);
 
-    //update ratio
-    pthread_mutex_lock(&ratio_mutex);
-    ratio_readers++;
-    if(ratio_writers >= ratio_writers_goal && ratio_writers_goal!=-1){
-        //there are readers waiting, wake them up, writers are not starving anymore
-        //printf("who is waking up the writers? id %d\n", id);
-        //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
-        //printf("ratio_writers_goal: %d\n", ratio_writers_goal);
-        //pthread_mutex_unlock(&starving);
-        pthread_cond_broadcast(&starving);
-    }
-    ratio_writers=0;
-    pthread_mutex_unlock(&ratio_mutex);
-
     pthread_mutex_lock(&readers_mutex);
-    readers--;//readers inside critical section
-    //printf("readers--: %d\n", readers);
-    if(readers==0){
+    readers--;  // readers inside critical section
+    // printf("readers--: %d\n", readers);
+    if (readers == 0) {
         pthread_mutex_unlock(&writing);
     }
     pthread_mutex_unlock(&readers_mutex);
-
 }
 
-//writer with write priority
-void write_wp(int id, struct timespec start_wait, int *counter_value, long *time_waiting){
+// writer with write priority
+void write_wp(int id, struct timespec start_wait, int *counter_value, long *time_waiting) {
     pthread_mutex_lock(&writers_mutex);
-    writers++;//new writer in the critical section
-    //printf("writers++: %d\n", writers);
-    if(writers==1){
+    writers++;  // new writer in the critical section
+    // printf("writers++: %d\n", writers);
+    if (writers == 1) {
         pthread_mutex_lock(&reading);
     }
     pthread_mutex_unlock(&writers_mutex);
@@ -263,82 +318,40 @@ void write_wp(int id, struct timespec start_wait, int *counter_value, long *time
 
     access_counter(COUNTER_INCREMENT, id, start_wait, counter_value, time_waiting);
 
-    //update ratio
-    pthread_mutex_lock(&ratio_mutex);
-    ratio_writers++;
-    if(ratio_readers >= ratio_readers_goal && ratio_readers_goal!=-1){
-        //there are readers waiting, wake them up, writers are not starving anymore
-        //printf("who is waking up the readers? id %d\n", id);
-        //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
-        //printf("ratio_writers_goal: %d\n", ratio_writers_goal);
-        //pthread_mutex_unlock(&starving);
-        pthread_cond_broadcast(&starving);
-    }
-    ratio_readers=0;
-    pthread_mutex_unlock(&ratio_mutex);
-
     pthread_mutex_unlock(&writing);
     pthread_mutex_lock(&writers_mutex);
-    writers--;//writers inside critical section
-    //printf("writers--: %d\n", writers);
-    if(writers==0){
+    writers--;  // writers inside critical section
+    // printf("writers--: %d\n", writers);
+    if (writers == 0) {
         pthread_mutex_unlock(&reading);
     }
     pthread_mutex_unlock(&writers_mutex);
 }
 
-//reader with read priority
-void read_rp(int id, struct timespec start_wait, int *counter_value, long *time_waiting){
-    pthread_mutex_lock(&readers_mutex);//protect readers variable
+// reader with read priority
+void read_rp(int id, struct timespec start_wait, int *counter_value, long *time_waiting) {
+    pthread_mutex_lock(&readers_mutex);  // protect readers variable
     readers++;
-    if(readers == 1){//if first reader, lock writers
-        pthread_mutex_lock(&writing);//protect counter
+    if (readers == 1) {                // if first reader, lock writers
+        pthread_mutex_lock(&writing);  // protect counter
     }
     pthread_mutex_unlock(&readers_mutex);
 
     access_counter(COUNTER_READ, id, start_wait, counter_value, time_waiting);
 
-    //update ratio
-    pthread_mutex_lock(&ratio_mutex);
-    ratio_readers++;
-    if(ratio_writers >= ratio_writers_goal && ratio_writers_goal!=-1){
-        //there are readers waiting, wake them up, writers are not starving anymore
-        //printf("who is waking up the writers? id %d\n", id);
-        //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
-        //printf("ratio_writers_goal: %d\n", ratio_writers_goal);
-        //pthread_mutex_unlock(&starving);
-        pthread_cond_broadcast(&starving);
-    }
-    ratio_writers=0;
-    pthread_mutex_unlock(&ratio_mutex);
-    
-
-    pthread_mutex_lock(&readers_mutex);//protect readers variable
+    pthread_mutex_lock(&readers_mutex);  // protect readers variable
     readers--;
-    if(readers == 0){//if last reader, unlock writers
-        pthread_mutex_unlock(&writing);//next writer can access counter
+    if (readers == 0) {                  // if last reader, unlock writers
+        pthread_mutex_unlock(&writing);  // next writer can access counter
     }
     pthread_mutex_unlock(&readers_mutex);
 }
 
-//writer with read priority
-void write_rp(int id, struct timespec start_wait, int *counter_value, long *time_waiting){
-    pthread_mutex_lock(&writing);//lock if there is a writer or a reader
+// writer with read priority
+void write_rp(int id, struct timespec start_wait, int *counter_value, long *time_waiting) {
+    pthread_mutex_lock(&writing);  // lock if there is a writer or a reader
 
     access_counter(COUNTER_INCREMENT, id, start_wait, counter_value, time_waiting);
-
-    //update ratio
-    pthread_mutex_lock(&ratio_mutex);
-    ratio_writers++;
-    if(ratio_readers >= ratio_readers_goal && ratio_readers_goal!=-1){
-        //there are readers waiting, wake them up, writers are not starving anymore
-        //printf("ratio_r: %d, ratio_w: %d \t", ratio_readers, ratio_writers);
-        //printf("ratio_writers_goal: %d\n", ratio_readers_goal);
-        //pthread_mutex_unlock(&starving);
-        pthread_cond_broadcast(&starving);
-    }
-    ratio_readers=0;
-    pthread_mutex_unlock(&ratio_mutex);
 
     pthread_mutex_unlock(&writing);
 }
