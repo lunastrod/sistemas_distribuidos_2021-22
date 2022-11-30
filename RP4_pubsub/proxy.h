@@ -63,14 +63,14 @@ int setup_broker(int port);
 int setup_subscriber(char *ip, int port);
 int setup_publisher(char *ip, int port);
 
-void send_config_msg(int sockfd, enum operations action, char *topic, int id);//clients
-int recv_response_msg(int sockfd);//clients returns id
+int send_config_msg(int sockfd, enum operations action, char *topic, int id);//clients returns id
+int recv_response_msg(int sockfd);//clients (called by send_config_msg)
 void send_publisher_msg(int sockfd, char *topic, char *data, int data_size);//publisher
 void recv_subscriber_msg(int sockfd, struct publish *publish);//subscriber
 
 void recv_client_msg(int sockfd, struct message *message);//broker
-void send_response_msg(int sockfd, enum status response_status, int id);//broker
-void send_subscriber_msg(int sockfd, struct publish *publish);//broker
+void send_response_msg(int sockfd, enum status response_status, int id);//broker (called by recv_client_msg)
+void send_subscriber_msg(int sockfd, struct message *message);//broker (called by recv_client_msg)
 
 
 /*

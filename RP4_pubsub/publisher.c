@@ -55,28 +55,11 @@ int main(int argc, char **argv) {
     parse_args(argc, argv, &args);
 
     int connfd = setup_publisher(args.ip, args.port);
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%ld.%ld] Publisher conectado con el broker (%s:%d).\n", ts.tv_sec, ts.tv_nsec, args.ip, args.port);
-
-    send_config_msg(connfd, REGISTER_PUBLISHER, args.topic, 0);
-    int id = recv_response_msg(connfd);
-    clock_gettime(CLOCK_REALTIME, &ts);
-    if (id < 0) {
-        fprintf(stderr,"[%ld.%ld] Error al hacer el registro: error=%s\n", ts.tv_sec, ts.tv_nsec, id == -1 ? "LIMIT" : "ERROR");
-        exit(1);
-    }
-    printf("[%ld.%ld] Registrado correctamente con ID: %d para topic %s\n", ts.tv_sec, ts.tv_nsec, id, args.topic);
+    int id = send_config_msg(connfd, REGISTER_PUBLISHER, args.topic, 0);
 
     char * text = "Hello World!";
     send_publisher_msg(connfd, args.topic, text, strlen(text));
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%ld.%ld] Publicado mensaje topic: %s - mensaje: %s - Generó: %ld - %ld \n", ts.tv_sec, ts.tv_nsec, args.topic, text, ts.tv_sec, ts.tv_nsec);
 
     send_config_msg(connfd, UNREGISTER_PUBLISHER, args.topic, id);
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%ld.%ld] De-Registrado (%d) correctamente del broker.\n", ts.tv_sec, ts.tv_nsec, id);
-
-    close_connection(connfd);
     return 0;
 }

@@ -73,25 +73,12 @@ int main(int argc, char **argv) {
     int sub_connfd=accept_new_client(sockfd);
 
     struct message msg;
-    struct timespec ts;
-    recv_config_msg(pub_connfd, &msg);
-    send_response_msg(pub_connfd, STATUS_OK, 0);
-
-    recv_config_msg(sub_connfd, &msg);
-    send_response_msg(sub_connfd, STATUS_OK, 1);
-
-    recv_publisher_msg(pub_connfd, &msg);
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%ld.%ld] Recibido mensaje para publicar en topic: %s - mensaje: %s - Generó: %ld.%ld \n", ts.tv_sec, ts.tv_nsec, msg.topic, msg.data.data, msg.data.time_generated_data.tv_sec, msg.data.time_generated_data.tv_nsec);
-    send_subscriber_msg(sub_connfd, &msg.data);
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%ld.%ld] Enviando mensaje en topic %s a %d suscriptores. \n", ts.tv_sec, ts.tv_nsec, msg.topic, 1);
-
-    recv_config_msg(pub_connfd, &msg);
-    close_connection(pub_connfd);
-
-    recv_config_msg(sub_connfd, &msg);
-    close_connection(sub_connfd);
+    recv_client_msg(pub_connfd, &msg);
+    recv_client_msg(sub_connfd, &msg);
+    recv_client_msg(pub_connfd, &msg);
+    send_subscriber_msg(sub_connfd, &msg);
+    recv_client_msg(pub_connfd, &msg);
+    recv_client_msg(sub_connfd, &msg);
 
     close_connection(sockfd);
     return 0;
