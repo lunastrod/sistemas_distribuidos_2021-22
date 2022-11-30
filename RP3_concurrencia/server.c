@@ -73,28 +73,6 @@ void parse_args(int argc, char **argv, struct main_args *args) {
 }
 
 void *server_thread(void *args) {
-    /*
-    // tests with counter.h and safe_access_counter()
-    struct thread_args *thread_args = (struct thread_args *)args;
-    int id = thread_args->id;
-    //int action = random() % 2; // 0: write, 1: read
-    long time_waiting;
-    int counter;
-    int action = READ;
-    if(id%2){
-        action = WRITE;
-    }
-
-    printf("I am a %s with id %d\n", action == READ ? "reader" : "writer", id);
-
-    while (1) {
-        counter=safe_access_counter(&time_waiting, action, id);
-    }
-    counter++;//to avoid warning
-
-    return NULL;
-    */
-    
     //socket
     struct thread_args *thread_args = (struct thread_args *)args;
     while (1) {

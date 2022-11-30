@@ -110,6 +110,7 @@ void access_counter(enum counter_operations action, int id, struct timespec star
     usleep((rand() % 75 + 75) * 1000);
 }
 /*
+OLD RATIO FUNCTIONS, DOESN'T WORK
 void check_ratio(enum counter_operations action){
     pthread_mutex_lock(&ratio_mutex);
     if(action == COUNTER_READ){
