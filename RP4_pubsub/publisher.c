@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
     char * text = "Hello World!";
     send_publisher_msg(connfd, args.topic, text, strlen(text));
 
+    sleep(1);
     send_config_msg(connfd, UNREGISTER_PUBLISHER, args.topic, id);
     return 0;
 }

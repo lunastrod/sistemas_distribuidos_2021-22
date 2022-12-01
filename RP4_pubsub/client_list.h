@@ -25,6 +25,7 @@ struct client_list{
     struct topic topics[TOPICS_MAX];
     int pub_counter;
     int sub_counter;
+    int id_counter;
 };
 
 enum client_type{
@@ -34,9 +35,10 @@ enum client_type{
 
 void init_client_list(struct client_list *cl);
 void print_client_list(struct client_list *cl);
-int n_clients(struct client *clients);
+int n_clients(struct client *clients, int size);
 int get_new_id(struct client_list *cl, enum client_type ct);
 int add_client(struct client_list *cl, enum client_type ct, char *topic, int socket);
 void remove_client(struct client_list *cl, enum client_type ct, char *topic, int id);
+int get_subscribers(struct client_list *cl, char *topic, int *connfds);//connfds is an array of SUBSCRIBERS_MAX sockets, returns the number of subscribers
 
 

@@ -1,6 +1,48 @@
 #include "client_list.h"
 
-void client_list_init(struct client_list *cl) {
+#define DEBUG 0
+
+void print_debug2(char *msg) {
+    if (DEBUG) {
+        printf("DEBUG:%s\n", msg);
+    }
+}
+
+void debug_print_client_list(struct client_list *cl){
+    printf("Resumen:\n");
+    for (int i = 0; i < TOPICS_MAX; i++) {
+        if(cl->topics[i].name[0] != '\0'){
+            printf("\t%d %s: ", i, cl->topics[i].name);
+        }
+        else{
+            printf("\t%d %s: ", i, "$(EMPTY)");
+        }
+        printf("\n\t%d pubs:", n_clients(cl->topics[i].pubs, PUBLISHERS_MAX));
+        for(int j = 0; j < PUBLISHERS_MAX; j++){
+            if(cl->topics[i].pubs[j].id != -1){
+                printf("%d ", cl->topics[i].pubs[j].id);
+            }
+            else{
+                printf("%s", "-");
+            }
+        }
+
+        printf("\n\t%d subs:", n_clients(cl->topics[i].subs, SUBSCRIBERS_MAX));
+
+        for(int j = 0; j < SUBSCRIBERS_MAX; j++){
+            if(cl->topics[i].subs[j].id != -1){
+                printf("%d ", cl->topics[i].subs[j].id);
+            }
+            else{
+                printf("%s", "-");
+            }
+        }
+
+        printf("\n");
+    }
+}
+
+void init_client_list(struct client_list *cl) {
     for (int i = 0; i < TOPICS_MAX; i++) {
         bzero(cl->topics[i].name, TOPIC_NAME_SIZE);
         for (int j = 0; j < PUBLISHERS_MAX; j++) {
@@ -12,21 +54,30 @@ void client_list_init(struct client_list *cl) {
             cl->topics[i].subs[j].socket = -1;
         }
     }
+    cl->pub_counter = 0;
+    cl->sub_counter = 0;
+    cl->id_counter = 0;
 }
 
+
+
 void print_client_list(struct client_list *cl) {
+    if(DEBUG){
+        debug_print_client_list(cl);
+        return;
+    }
     printf("Resumen:\n");
     for (int i = 0; i < TOPICS_MAX; i++) {
         if (cl->topics[i].name[0] != '\0') {
             printf("\t%s: ", cl->topics[i].name);
-            printf("%d Suscriptores - %d Publicadores\n", n_clients(cl->topics[i].subs), n_clients(cl->topics[i].pubs));
+            printf("%d Suscriptores - %d Publicadores\n", n_clients(cl->topics[i].subs, SUBSCRIBERS_MAX), n_clients(cl->topics[i].pubs, PUBLISHERS_MAX));
         }
     }
 }
 
-int n_clients(struct client *clients) {
+int n_clients(struct client *clients, int size) {
     int n = 0;
-    for (int i = 0; i < SUBSCRIBERS_MAX; i++) {
+    for (int i = 0; i < size; i++) {
         if (clients[i].id != -1) {
             n++;
         }
@@ -34,55 +85,20 @@ int n_clients(struct client *clients) {
     return n;
 }
 
-/*
-void add_client(struct client_list *cl, enum client_type ct, char *topic, int id, int socket) {
+int add_client(struct client_list *cl, enum client_type ct, char *topic, int socket) {
+    if (ct == PUBLISHER && cl->pub_counter == PUBLISHERS_MAX) {
+        print_debug2("too many publishers");
+        return -1;
+    } else if (ct == SUBSCRIBER && cl->sub_counter == SUBSCRIBERS_MAX) {
+        print_debug2("too many subscribers");
+        return -1;
+    }
     int i = 0;
-    // search for empty topic or topic with same name
     while (cl->topics[i].name[0] != '\0' && strncmp(cl->topics[i].name, topic, TOPIC_NAME_SIZE) != 0 && i < TOPICS_MAX) {
         i++;
     }
-    // now i is the index of the topic
-    // if topic is empty, add name
-    if (cl->topics[i].name[0] == '\0') {
-        strncpy(cl->topics[i].name, topic, TOPIC_NAME_SIZE);
-    }
-    // add client to topic
-    if (ct == PUBLISHER) {
-        int j = 0;
-        // search for empty publisher
-        while (cl->topics[i].pubs[j].id != -1 && j < PUBLISHERS_MAX) {
-            j++;
-        }
-        // now j is the index of the publisher
-        cl->topics[i].pubs[j].id = id;
-        cl->topics[i].pubs[j].socket = socket;
-    } else {
-        int j = 0;
-        // search for empty subscriber
-        while (cl->topics[i].subs[j].id != -1 && j < SUBSCRIBERS_MAX) {
-            j++;
-        }
-        // now j is the index of the subscriber
-        cl->topics[i].subs[j].id = id;
-        cl->topics[i].subs[j].socket = socket;
-    }
-}
-*/
-int add_client(struct client_list *cl, enum client_type ct, char *topic, int socket) {
-    if (ct == PUBLISHER && cl->pub_counter + 1 == PUBLISHERS_MAX) {
-        // too many publishers
-        return -1;
-    } else if (ct == SUBSCRIBER && cl->sub_counter + 1 == SUBSCRIBERS_MAX) {
-        // too many subscribers
-        return -1;
-    }
-    int i = 0;
-    // search for empty topic or topic with same name
-    while (cl->topics[i].name[0] != '\0' && strncmp(cl->topics[i].name, topic, TOPIC_NAME_SIZE) != 0 && i <= TOPICS_MAX) {
-        i++;
-    }
     if (i == TOPICS_MAX) {
-        // no empty topic found, too many topics
+        print_debug2("too many topics");
         return -1;
     }
     // now i is the index of the topic
@@ -123,6 +139,10 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
     while (strncmp(cl->topics[i].name, topic, TOPIC_NAME_SIZE) != 0 && i < TOPICS_MAX) {
         i++;
     }
+    if(i == TOPICS_MAX){
+        print_debug2("topic not found");
+        return;
+    }
     // now i is the index of the topic
     // remove client from topic
     if (ct == PUBLISHER) {
@@ -130,6 +150,10 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
         // search for publisher with same id
         while (cl->topics[i].pubs[j].id != id && j < PUBLISHERS_MAX) {
             j++;
+        }
+        if(j == PUBLISHERS_MAX){
+            print_debug2("publisher not found, invalid id");
+            return;
         }
         // now j is the index of the publisher
         cl->topics[i].pubs[j].id = -1;
@@ -141,23 +165,46 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
         while (cl->topics[i].subs[j].id != id && j < SUBSCRIBERS_MAX) {
             j++;
         }
+        if(j == SUBSCRIBERS_MAX){
+            print_debug2("subscriber not found, invalid id");
+            return;
+        }
         // now j is the index of the subscriber
         cl->topics[i].subs[j].id = -1;
         cl->topics[i].subs[j].socket = -1;
         cl->sub_counter--;
     }
     // if topic is empty, remove name
-    if (n_clients(cl->topics[i].subs) == 0 && n_clients(cl->topics[i].pubs) == 0) {
+    if (n_clients(cl->topics[i].subs, SUBSCRIBERS_MAX) == 0 && n_clients(cl->topics[i].pubs, PUBLISHERS_MAX) == 0) {
+        print_debug2("topic is empty, removing");
         bzero(cl->topics[i].name, TOPIC_NAME_SIZE);
     }
 }
 
 int get_new_id(struct client_list *cl, enum client_type ct) {
-    int id = 0;
-    if (ct == PUBLISHER) {
-        return cl->pub_counter;
-    } else {
-        return PUBLISHERS_MAX + cl->sub_counter;
+    return cl->id_counter++;//returns the id and then increments it
+}
+
+int get_subscribers(struct client_list *cl, char *topic, int *connfds) {
+    int i = 0;
+    // search for topic with same name
+    while (strncmp(cl->topics[i].name, topic, TOPIC_NAME_SIZE) != 0 && i < TOPICS_MAX) {
+        i++;
     }
-    return id;
+    if(i == TOPICS_MAX){
+        print_debug2("topic not found");
+        return -1;
+    }
+    // now i is the index of the topic
+    // copy subscribers to connfds
+    // j is the index of the subscriber in the topic
+    // k is the index of the subscriber in connfds
+    int k=0;
+    for (int j = 0; j < SUBSCRIBERS_MAX; j++) {
+        if(cl->topics[i].subs[j].id != -1){
+            connfds[k] = cl->topics[i].subs[j].socket;
+            k++;
+        }
+    }
+    return k;
 }

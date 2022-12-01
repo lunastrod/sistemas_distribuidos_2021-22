@@ -196,6 +196,8 @@ int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
 
 void recv_client_msg(int sockfd, struct message *message, struct client_list *client_list) {
     simple_recv(sockfd, message, sizeof(struct message), 0);
+    print_debug("recv");
+    print_debug("TODO: DOESNT RECV MESSAGES OTHER THAN THE FIRST ONES");
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     if(message->action == REGISTER_PUBLISHER){
@@ -223,17 +225,21 @@ void recv_client_msg(int sockfd, struct message *message, struct client_list *cl
         }
     }
     else if(message->action == UNREGISTER_PUBLISHER){
-        close_connection(sockfd);
         printf("[%ld.%ld] Eliminado cliente (%d) Publicador : %s \n", ts.tv_sec, ts.tv_nsec, 0, message->topic);
+        close_connection(sockfd);
     }
     else if(message->action == UNREGISTER_SUBSCRIBER){
-        close_connection(sockfd);
         printf("[%ld.%ld] Eliminado cliente (%d) Suscriptor : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
+        close_connection(sockfd);
     }
     else if(message->action == PUBLISH_DATA){
         printf("[%ld.%ld] Recibido mensaje para publicar en topic: %s - mensaje: %s - Generó: %ld.%ld \n", ts.tv_sec, ts.tv_nsec, message->topic, message->data.data, message->data.time_generated_data.tv_sec, message->data.time_generated_data.tv_nsec);
-        print_debug("TODO: get connfd from subscribers from database");
-        print_debug("TODO: send data to subscribers");
+        int subs_connfds[SUBSCRIBERS_MAX];
+        int subs_count=get_subscribers(client_list, message->topic, subs_connfds);
+        print_debug("Enviando mensaje a suscriptor");
+        for (int i = 0; i < subs_count; i++) {
+            send_subscriber_msg(subs_connfds[i], message);
+        }
     }
     else{
         warnx("Error: recv_client_msg() recv invalid action %d", message->action);

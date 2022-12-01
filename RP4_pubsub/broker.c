@@ -64,11 +64,14 @@ void parse_args(int argc, char **argv, struct main_args *args) {
 }
 
 int main(int argc, char **argv) {
-    struct client_list clients;    
     struct main_args args;
     parse_args(argc, argv, &args);
 
     int sockfd=setup_broker(args.port);
+
+    struct client_list clients;
+    init_client_list(&clients);
+    
     int pub_connfd=accept_new_client(sockfd);
     int sub_connfd=accept_new_client(sockfd);
 
@@ -76,7 +79,11 @@ int main(int argc, char **argv) {
     recv_client_msg(pub_connfd, &msg, &clients);
     recv_client_msg(sub_connfd, &msg, &clients);
     recv_client_msg(pub_connfd, &msg, &clients);
-    send_subscriber_msg(sub_connfd, &msg);
+    recv_client_msg(pub_connfd, &msg, &clients);
+    recv_client_msg(sub_connfd, &msg, &clients);
+    recv_client_msg(pub_connfd, &msg, &clients);
+    recv_client_msg(sub_connfd, &msg, &clients);
+    recv_client_msg(pub_connfd, &msg, &clients);
     recv_client_msg(pub_connfd, &msg, &clients);
     recv_client_msg(sub_connfd, &msg, &clients);
 

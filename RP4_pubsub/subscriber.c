@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
     struct publish msg;
     recv_subscriber_msg(connfd, &msg);
 
+    sleep(1);
     send_config_msg(connfd, UNREGISTER_SUBSCRIBER, args.topic, id);
     return 0;
 }
