@@ -1,5 +1,11 @@
 #include "proxy.h"
 
+void print_debug(char *msg) {
+    if (DEBUG) {
+        printf("DEBUG:%s\n", msg);
+    }
+}
+
 int setup_client(char *ip, int port) {
     // remove stdout buffer
     setbuf(stdout, NULL);
@@ -118,6 +124,10 @@ int setup_broker(int port) {
 
 int setup_subscriber(char *ip, int port) {
     int connfd = setup_client(ip, port);
+
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    printf("[%ld.%ld] Subscriber conectado con el broker correctamente (%s:%d)\n", ts.tv_sec, ts.tv_nsec, ip, port);
     return connfd;
 }
 
@@ -126,8 +136,7 @@ int setup_publisher(char *ip, int port) {
 
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%ld.%ld] Publisher conectado con el broker correctamente.\n", ts.tv_sec, ts.tv_nsec);
-    
+    printf("[%ld.%ld] Publisher conectado con el broker correctamente (%s:%d)\n", ts.tv_sec, ts.tv_nsec, ip, port);
     return connfd;
 }
 
@@ -147,7 +156,7 @@ int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
     struct message msg;
     msg.action = action;
     msg.id = id;
-    strncpy(msg.topic, topic, TOPIC_SIZE);
+    strncpy(msg.topic, topic, TOPIC_NAME_SIZE);
     int return_value=0;
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
@@ -156,7 +165,7 @@ int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
         simple_send(sockfd, &msg, sizeof(msg), 0);
         return_value=recv_response_msg(sockfd);
         if (return_value < 0) {
-            errx(1, "[%ld.%ld] Error al hacer el registro: %s\n", ts.tv_sec, ts.tv_nsec, id == -1 ? "LIMIT" : "ERROR");
+            errx(1, "[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
         }
         printf("[%ld.%ld] Registrado correctamente con ID: %d para topic %s\n", ts.tv_sec, ts.tv_nsec, id, topic);
     }
@@ -164,7 +173,7 @@ int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
         simple_send(sockfd, &msg, sizeof(msg), 0);
         return_value=recv_response_msg(sockfd);
         if (return_value < 0) {
-            errx(1, "[%ld.%ld] Error al hacer el registro: %s\n", ts.tv_sec, ts.tv_nsec, id == -1 ? "LIMIT" : "ERROR");
+            errx(1, "[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
         }
         printf("[%ld.%ld] Registrado correctamente con ID: %d para topic %s \n", ts.tv_sec, ts.tv_nsec, id, topic);
     }
@@ -185,17 +194,33 @@ int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
 
 }
 
-void recv_client_msg(int sockfd, struct message *message) {
+void recv_client_msg(int sockfd, struct message *message, struct client_list *client_list) {
     simple_recv(sockfd, message, sizeof(struct message), 0);
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     if(message->action == REGISTER_PUBLISHER){
-        send_response_msg(sockfd, STATUS_OK, 0);
-        printf("[%ld.%ld] Nuevo cliente (%d) Publicador conectado : %s \n", ts.tv_sec, ts.tv_nsec, 0, message->topic);
+        int id= add_client(client_list, PUBLISHER, message->topic, sockfd);
+        if (id < 0){
+            send_response_msg(sockfd, STATUS_LIMIT, id);
+            warnx("[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
+        }
+        else{
+            send_response_msg(sockfd, STATUS_OK, id);
+            printf("[%ld.%ld] Nuevo cliente (%d) Publicador conectado : %s \n", ts.tv_sec, ts.tv_nsec, 0, message->topic);
+            print_client_list(client_list);
+        }
     }
     else if(message->action == REGISTER_SUBSCRIBER){
-        send_response_msg(sockfd, STATUS_OK, 0);
-        printf("[%ld.%ld] Nuevo cliente (%d) Suscriptor conectado : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
+        int id= add_client(client_list, SUBSCRIBER, message->topic, sockfd);
+        if (id < 0){
+            send_response_msg(sockfd, STATUS_LIMIT, id);
+            warnx("[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
+        }
+        else{
+            send_response_msg(sockfd, STATUS_OK, id);
+            printf("[%ld.%ld] Nuevo cliente (%d) Suscriptor conectado : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
+            print_client_list(client_list);
+        }
     }
     else if(message->action == UNREGISTER_PUBLISHER){
         close_connection(sockfd);
@@ -207,9 +232,11 @@ void recv_client_msg(int sockfd, struct message *message) {
     }
     else if(message->action == PUBLISH_DATA){
         printf("[%ld.%ld] Recibido mensaje para publicar en topic: %s - mensaje: %s - Generó: %ld.%ld \n", ts.tv_sec, ts.tv_nsec, message->topic, message->data.data, message->data.time_generated_data.tv_sec, message->data.time_generated_data.tv_nsec);
+        print_debug("TODO: get connfd from subscribers from database");
+        print_debug("TODO: send data to subscribers");
     }
     else{
-        warnx("Error: recv_client_msg() recv invalid action");
+        warnx("Error: recv_client_msg() recv invalid action %d", message->action);
     }
 }
 
@@ -237,7 +264,7 @@ void send_publisher_msg(int sockfd, char *topic, char *data, int data_size) {
     struct message msg;
     msg.action = PUBLISH_DATA;
     msg.id = 0;
-    strncpy(msg.topic, topic, TOPIC_SIZE);
+    strncpy(msg.topic, topic, TOPIC_NAME_SIZE);
     if(data_size >= DATA_SIZE){
         data_size = DATA_SIZE-1;
         warnx("Error: send_publisher_msg() data_size too big, truncating to %d", data_size);
@@ -262,5 +289,5 @@ void recv_subscriber_msg(int sockfd, struct publish *msg){
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     struct timespec latency = diff_timespec(&ts, &msg->time_generated_data);
-    printf("[%ld.%ld] Recibido mensaje topic: %s - mensaje: %s - Generó: %ld.%ld - Recibido: %ld.%ld - Latencia: %ld.%ld.\n", ts.tv_sec, ts.tv_nsec, "TODO", msg->data, msg->time_generated_data.tv_sec, msg->time_generated_data.tv_nsec, ts.tv_sec, ts.tv_nsec, latency.tv_sec, latency.tv_nsec);
+    printf("[%ld.%ld] Recibido mensaje: %s - Generó: %ld.%ld - Recibido: %ld.%ld - Latencia: %ld.%ld.\n", ts.tv_sec, ts.tv_nsec, msg->data, msg->time_generated_data.tv_sec, msg->time_generated_data.tv_nsec, ts.tv_sec, ts.tv_nsec, latency.tv_sec, latency.tv_nsec);
 }

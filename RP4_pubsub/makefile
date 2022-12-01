@@ -3,9 +3,9 @@ TARGET1 = publisher
 TARGET2 = subscriber
 TARGET3 = broker
 #todos los objetos de los que dependa el ejecutable
-OBJS1 = publisher.o proxy.o
-OBJS2 = subscriber.o proxy.o
-OBJS3 = broker.o proxy.o
+OBJS1 = publisher.o proxy.o client_list.o
+OBJS2 = subscriber.o proxy.o client_list.o
+OBJS3 = broker.o proxy.o client_list.o
 #flags del compilador
 CFLAGS = -Wall -lpthread
 

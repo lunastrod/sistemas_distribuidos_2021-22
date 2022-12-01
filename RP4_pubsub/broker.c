@@ -39,7 +39,6 @@ void parse_args(int argc, char **argv, struct main_args *args) {
                 }
                 break;
             case 'm':
-                // modes: secuencial, paralelo, justo
                 if (strcmp(optarg, "secuencial") == 0) {
                     args->mode = MODE_SECUENTIAL;
                 } 
@@ -65,6 +64,7 @@ void parse_args(int argc, char **argv, struct main_args *args) {
 }
 
 int main(int argc, char **argv) {
+    struct client_list clients;    
     struct main_args args;
     parse_args(argc, argv, &args);
 
@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
     int sub_connfd=accept_new_client(sockfd);
 
     struct message msg;
-    recv_client_msg(pub_connfd, &msg);
-    recv_client_msg(sub_connfd, &msg);
-    recv_client_msg(pub_connfd, &msg);
+    recv_client_msg(pub_connfd, &msg, &clients);
+    recv_client_msg(sub_connfd, &msg, &clients);
+    recv_client_msg(pub_connfd, &msg, &clients);
     send_subscriber_msg(sub_connfd, &msg);
-    recv_client_msg(pub_connfd, &msg);
-    recv_client_msg(sub_connfd, &msg);
+    recv_client_msg(pub_connfd, &msg, &clients);
+    recv_client_msg(sub_connfd, &msg, &clients);
 
     close_connection(sockfd);
     return 0;

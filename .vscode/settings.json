@@ -14,6 +14,7 @@
         "string_view": "c",
         "random": "c",
         "sstream": "c",
-        "proxy.h": "c"
+        "proxy.h": "c",
+        "thread": "c"
     }
 }

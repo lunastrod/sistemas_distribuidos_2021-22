@@ -1,13 +1,10 @@
-// std
-#include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 // sockets
 #include <arpa/inet.h>
+
+// threads
 #include <pthread.h>
+
+#include "client_list.h"
 
 enum operations {
     REGISTER_PUBLISHER = 0,
@@ -24,11 +21,9 @@ struct publish {
     char data[DATA_SIZE];
 };
 
-#define TOPIC_SIZE 100
-
 struct message {
     enum operations action;
-    char topic[TOPIC_SIZE];
+    char topic[TOPIC_NAME_SIZE];
     // Solo utilizado en mensajes de UNREGISTER
     int id;
     // Solo utilizado en mensajes PUBLISH_DATA
@@ -47,7 +42,10 @@ struct response {
 };
 
 #define IP_SIZE 16
+
+// CONFIGURATION
 #define CONNECT_RETRY 0 //(0 or 1)
+#define DEBUG 1 //(0 or 1)
 
 // PRIVATE FUNCTIONS
 int setup_client(char *ip, int port);
@@ -68,7 +66,7 @@ int recv_response_msg(int sockfd);//clients (called by send_config_msg)
 void send_publisher_msg(int sockfd, char *topic, char *data, int data_size);//publisher
 void recv_subscriber_msg(int sockfd, struct publish *publish);//subscriber
 
-void recv_client_msg(int sockfd, struct message *message);//broker
+void recv_client_msg(int sockfd, struct message *message, struct client_list *client_list);//broker
 void send_response_msg(int sockfd, enum status response_status, int id);//broker (called by recv_client_msg)
 void send_subscriber_msg(int sockfd, struct message *message);//broker (called by recv_client_msg)
 
