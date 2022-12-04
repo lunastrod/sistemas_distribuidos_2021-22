@@ -1,7 +1,14 @@
+// std
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <signal.h>
 #include <getopt.h>
 
 #include "proxy.h"
-
 //./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC
 
 struct main_args {
@@ -9,6 +16,18 @@ struct main_args {
     int port;
     char *topic;
 };
+
+void get_cpu_load(char * load) {
+  FILE* file = fopen("/proc/loadavg", "r");
+
+  float avg1, avg5, avg15;
+
+  fscanf(file, "%f %f %f", &avg1, &avg5, &avg15);
+  fclose(file);
+
+  snprintf(load, 100, "cpu load:  1m: %.2f  5m: %.2f  15: %.2f", avg1, avg5, avg15);
+}
+
 
 void parse_args(int argc, char **argv, struct main_args *args) {
     // Default values
@@ -50,17 +69,29 @@ void parse_args(int argc, char **argv, struct main_args *args) {
     }
 }
 
+// Flag to indicate that SIGINT has been received
+volatile sig_atomic_t sigint_received = 0;
+
+// Signal handler for SIGINT
+void sigint_handler(int signum) {
+  sigint_received = 1;
+}
+
 int main(int argc, char **argv) {
     struct main_args args;
     parse_args(argc, argv, &args);
 
     int connfd = setup_publisher(args.ip, args.port);
-    int id = send_config_msg(connfd, REGISTER_PUBLISHER, args.topic, 0);
+    int id = send_config(connfd, REGISTER_PUBLISHER, args.topic, 0);
 
-    char * text = "Hello World!";
-    send_publisher_msg(connfd, args.topic, text, strlen(text));
+    signal(SIGINT, sigint_handler);
+    while(!sigint_received){
+        char load[100];
+        get_cpu_load(load);
+        publish(connfd, args.topic, load, strlen(load));
+        sleep(3);
+    }
 
-    sleep(1);
-    send_config_msg(connfd, UNREGISTER_PUBLISHER, args.topic, id);
+    send_config(connfd, UNREGISTER_PUBLISHER, args.topic, id);
     return 0;
 }

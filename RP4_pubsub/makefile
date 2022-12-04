@@ -6,6 +6,7 @@ TARGET3 = broker
 OBJS1 = publisher.o proxy.o client_list.o
 OBJS2 = subscriber.o proxy.o client_list.o
 OBJS3 = broker.o proxy.o client_list.o
+OBJS_TEST = proxy.o client_list.o
 #flags del compilador
 CFLAGS = -Wall -lpthread
 
@@ -42,4 +43,9 @@ clean:
 .PHONY: fresh
 fresh: | clean all
 	rm -f *.o
-	
+
+.PHONY: test
+test: | all
+	gcc -c tests/test.c -o tests/test.o $(CFLAGS) -I. 
+	gcc tests/test.o $(OBJS_TEST) -o tests/test $(CFLAGS) -lcheck -lpthread -lrt -lm -lsubunit
+	./tests/test

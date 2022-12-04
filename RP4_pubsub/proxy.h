@@ -1,9 +1,3 @@
-// sockets
-#include <arpa/inet.h>
-
-// threads
-#include <pthread.h>
-
 #include "client_list.h"
 
 enum operations {
@@ -56,34 +50,41 @@ void close_connection(int sockfd);
 void simple_send(int sockfd, void *buffer, int buffer_size, int send_flags);
 void simple_recv(int sockfd, void *buffer, int buffer_size, int recv_flags);
 
-// PUBLIC FUNCTIONS
+//SETUP
 int setup_broker(int port);
 int setup_subscriber(char *ip, int port);
 int setup_publisher(char *ip, int port);
 
-int send_config_msg(int sockfd, enum operations action, char *topic, int id);//clients returns id
-int recv_response_msg(int sockfd);//clients (called by send_config_msg)
-void send_publisher_msg(int sockfd, char *topic, char *data, int data_size);//publisher
-void recv_subscriber_msg(int sockfd, struct publish *publish);//subscriber
+//CLIENTS
+int send_config(int sockfd, enum operations action, char *topic, int id);
+int recv_response_msg(int sockfd);//(called by send_config_msg)
+void publish(int sockfd, char *topic, char *data, int data_size);
+void subscribe(int sockfd, char *topic,struct publish *publish);
 
-void recv_client_msg(int sockfd, struct message *message, struct client_list *client_list);//broker
+//BROKER
+void recv_register_msg(int sockfd, struct message *message, struct client_list *client_list);//register (called by the accept thread)
+void recv_publisher_msg(int sockfd, struct message *message, struct client_list *client_list);//unregister publisher or publish_data (called by the fordwarder thread)
+void recv_unregister_subscriber_msg(int sockfd, struct message *message, struct client_list *client_list);//unregister subscriber (called by the unregister_sub thread)
+
 void send_response_msg(int sockfd, enum status response_status, int id);//broker (called by recv_client_msg)
 void send_subscriber_msg(int sockfd, struct message *message);//broker (called by recv_client_msg)
 
-
-/*
------register publisher-----
-publisher sends (struct message) to broker with topic and REGISTER_PUBLISHER action (id = 0)
-broker receives config message and sends (struct response) to subscriber with id
-publisher receives response and stores id
-
------register subscriber-----
-subscriber sends (struct message) to broker with topic and REGISTER_SUBSCRIBER action (id = 0)
-broker receives config message and sends (struct response) to subscriber with id
-subscriber receives response and stores id
-
------publish data-----
-publisher sends (struct message) to broker with topic using send_publish_msg()
-broker receives publish message and sends (struct publish) to all subscribers with topic
-subscriber receives publish message
-*/
+//THREAD FUNCTIONS
+struct broker_threads{
+    pthread_t accept_thread;
+    pthread_t fordwarder_thread;//recv messages from publishers and send them to subscribers
+    pthread_t subscriber_thread;//recv unregister messages from subscribers and modify the client list
+};
+struct accept_thread_args {
+    int sockfd;
+    struct client_list *cl;
+};
+void * accept_thread(void *args);
+struct fordwarder_thread_args{
+    struct client_list *cl;
+};
+void * fordwarder_thread(void *args);
+struct subscriber_thread_args{
+    struct client_list *cl;
+};
+void * subscriber_thread(void *args);

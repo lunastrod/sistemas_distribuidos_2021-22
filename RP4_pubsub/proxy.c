@@ -1,3 +1,17 @@
+// std
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+// sockets
+#include <arpa/inet.h>
+// poll
+#include <sys/poll.h>
+// threads
+#include <pthread.h>
+
 #include "proxy.h"
 
 void print_debug(char *msg) {
@@ -117,6 +131,9 @@ void simple_send(int sockfd, void *buffer, int buffer_size, int send_flags) {
     }
 }
 
+//==============================================================================
+//SETUP
+
 int setup_broker(int port) {
     int sockfd = setup_server(port);
     return sockfd;
@@ -152,7 +169,10 @@ struct timespec diff_timespec(const struct timespec *time1, const struct timespe
     return diff;
 }
 
-int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
+//==============================================================================
+//CLIENTS
+
+int send_config(int sockfd, enum operations action, char *topic, int id) {
     struct message msg;
     msg.action = action;
     msg.id = id;
@@ -191,66 +211,6 @@ int send_config_msg(int sockfd, enum operations action, char *topic, int id) {
         errx(1,"[%ld.%ld] Error al enviar el mensaje de configuracion: invalid action %d\n", ts.tv_sec, ts.tv_nsec, msg.action);
     }
     return return_value;
-
-}
-
-void recv_client_msg(int sockfd, struct message *message, struct client_list *client_list) {
-    simple_recv(sockfd, message, sizeof(struct message), 0);
-    print_debug("recv");
-    print_debug("TODO: DOESNT RECV MESSAGES OTHER THAN THE FIRST ONES");
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    if(message->action == REGISTER_PUBLISHER){
-        int id= add_client(client_list, PUBLISHER, message->topic, sockfd);
-        if (id < 0){
-            send_response_msg(sockfd, STATUS_LIMIT, id);
-            warnx("[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
-        }
-        else{
-            send_response_msg(sockfd, STATUS_OK, id);
-            printf("[%ld.%ld] Nuevo cliente (%d) Publicador conectado : %s \n", ts.tv_sec, ts.tv_nsec, 0, message->topic);
-            print_client_list(client_list);
-        }
-    }
-    else if(message->action == REGISTER_SUBSCRIBER){
-        int id= add_client(client_list, SUBSCRIBER, message->topic, sockfd);
-        if (id < 0){
-            send_response_msg(sockfd, STATUS_LIMIT, id);
-            warnx("[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
-        }
-        else{
-            send_response_msg(sockfd, STATUS_OK, id);
-            printf("[%ld.%ld] Nuevo cliente (%d) Suscriptor conectado : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
-            print_client_list(client_list);
-        }
-    }
-    else if(message->action == UNREGISTER_PUBLISHER){
-        printf("[%ld.%ld] Eliminado cliente (%d) Publicador : %s \n", ts.tv_sec, ts.tv_nsec, 0, message->topic);
-        close_connection(sockfd);
-    }
-    else if(message->action == UNREGISTER_SUBSCRIBER){
-        printf("[%ld.%ld] Eliminado cliente (%d) Suscriptor : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
-        close_connection(sockfd);
-    }
-    else if(message->action == PUBLISH_DATA){
-        printf("[%ld.%ld] Recibido mensaje para publicar en topic: %s - mensaje: %s - Generó: %ld.%ld \n", ts.tv_sec, ts.tv_nsec, message->topic, message->data.data, message->data.time_generated_data.tv_sec, message->data.time_generated_data.tv_nsec);
-        int subs_connfds[SUBSCRIBERS_MAX];
-        int subs_count=get_subscribers(client_list, message->topic, subs_connfds);
-        print_debug("Enviando mensaje a suscriptor");
-        for (int i = 0; i < subs_count; i++) {
-            send_subscriber_msg(subs_connfds[i], message);
-        }
-    }
-    else{
-        warnx("Error: recv_client_msg() recv invalid action %d", message->action);
-    }
-}
-
-void send_response_msg(int sockfd, enum status response_status, int id) {
-    struct response msg;
-    msg.response_status = response_status;
-    msg.id = id;
-    simple_send(sockfd, &msg, sizeof(msg), 0);
 }
 
 int recv_response_msg(int sockfd) {
@@ -266,7 +226,7 @@ int recv_response_msg(int sockfd) {
     return message.id;
 }
 
-void send_publisher_msg(int sockfd, char *topic, char *data, int data_size) {
+void publish(int sockfd, char *topic, char *data, int data_size) {
     struct message msg;
     msg.action = PUBLISH_DATA;
     msg.id = 0;
@@ -279,8 +239,94 @@ void send_publisher_msg(int sockfd, char *topic, char *data, int data_size) {
     strncpy(msg.data.data, data, data_size);
     clock_gettime(CLOCK_REALTIME, &msg.data.time_generated_data);
     simple_send(sockfd, &msg, sizeof(msg), 0);
-    printf("[%ld.%ld] Publicado mensaje topic: %s - mensaje: %s - Generó: %ld - %ld \n", msg.data.time_generated_data.tv_sec, msg.data.time_generated_data.tv_nsec, msg.topic, msg.data.data, msg.data.time_generated_data.tv_sec, msg.data.time_generated_data.tv_nsec);
+    printf("[%ld.%ld] Publicado mensaje topic: %s - \nmensaje: \"%s\" \n- Generó: %ld.%ld \n", msg.data.time_generated_data.tv_sec, msg.data.time_generated_data.tv_nsec, msg.topic, msg.data.data, msg.data.time_generated_data.tv_sec, msg.data.time_generated_data.tv_nsec);
+}
 
+void subscribe(int sockfd, char *topic, struct publish *msg){
+    simple_recv(sockfd, msg, sizeof(struct publish), 0);
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    struct timespec latency = diff_timespec(&ts, &msg->time_generated_data);
+    printf("[%ld.%ld] Recibido mensaje topic: %s - \nmensaje: \"%s\" \n- Generó: %ld.%ld - Recibido: %ld.%ld - Latencia: %ld.%ld.\n", ts.tv_sec, ts.tv_nsec, topic, msg->data, msg->time_generated_data.tv_sec, msg->time_generated_data.tv_nsec, ts.tv_sec, ts.tv_nsec, latency.tv_sec, latency.tv_nsec);
+}
+
+//==============================================================================
+//BROKER
+
+void recv_register_msg(int sockfd, struct message *message, struct client_list *client_list) {
+    simple_recv(sockfd, message, sizeof(struct message), 0);
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    if(message->action == REGISTER_PUBLISHER){
+        int id= add_client(client_list, PUBLISHER, message->topic, sockfd);
+        
+        if (id < 0){
+            send_response_msg(sockfd, STATUS_LIMIT, id);
+            warnx("[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
+        }
+        else{
+            send_response_msg(sockfd, STATUS_OK, id);
+            printf("[%ld.%ld] Nuevo cliente (%d) Publicador conectado : %s \n", ts.tv_sec, ts.tv_nsec, id, message->topic);
+            print_client_list(client_list);
+        }
+    }
+    else if(message->action == REGISTER_SUBSCRIBER){
+        int id= add_client(client_list, SUBSCRIBER, message->topic, sockfd);
+        if (id < 0){
+            send_response_msg(sockfd, STATUS_LIMIT, id);
+            warnx("[%ld.%ld] Error al hacer el registro: error=%d (%s)\n", ts.tv_sec, ts.tv_nsec, id, id == -1 ? "LIMIT" : "ERROR");
+        }
+        else{
+            send_response_msg(sockfd, STATUS_OK, id);
+            printf("[%ld.%ld] Nuevo cliente (%d) Suscriptor conectado : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
+            print_client_list(client_list);
+        }
+    }
+    else{
+        warnx("Error: recv_register_msg() recv invalid action %d", message->action);
+    }
+}
+
+void recv_publisher_msg(int sockfd, struct message *message, struct client_list *client_list) {
+    simple_recv(sockfd, message, sizeof(struct message), 0);
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    if(message->action == UNREGISTER_PUBLISHER){
+        remove_client(client_list, PUBLISHER, message->topic, message->id);
+        printf("[%ld.%ld] Eliminado cliente (%d) Publicador : %s \n", ts.tv_sec, ts.tv_nsec, message->id, message->topic);
+        close_connection(sockfd);
+    }
+    else if(message->action == PUBLISH_DATA){
+        printf("[%ld.%ld] Recibido mensaje para publicar en topic: %s - \nmensaje: \"%s\"\n - Generó: %ld.%ld \n", ts.tv_sec, ts.tv_nsec, message->topic, message->data.data, message->data.time_generated_data.tv_sec, message->data.time_generated_data.tv_nsec);
+        int subs_connfds[SUBSCRIBERS_MAX];
+        int subs_count=get_subscribers(client_list, message->topic, subs_connfds);
+        for (int i = 0; i < subs_count; i++) {
+            send_subscriber_msg(subs_connfds[i], message);
+        }
+    }
+    else{
+        warnx("Error: recv_publisher_msg() recv invalid action %d", message->action);
+    }
+}
+
+void recv_unregister_subscriber_msg(int sockfd, struct message *message, struct client_list *client_list){
+    simple_recv(sockfd, message, sizeof(struct message), 0);
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    if(message->action == UNREGISTER_SUBSCRIBER){
+        printf("[%ld.%ld] Eliminado cliente (%d) Suscriptor : %s \n", ts.tv_sec, ts.tv_nsec, 1, message->topic);
+        close_connection(sockfd);
+    }
+    else{
+        warnx("Error: recv_unregister_subscriber_msg() recv invalid action %d", message->action);
+    }
+}
+
+void send_response_msg(int sockfd, enum status response_status, int id) {
+    struct response msg;
+    msg.response_status = response_status;
+    msg.id = id;
+    simple_send(sockfd, &msg, sizeof(msg), 0);
 }
 
 void send_subscriber_msg(int sockfd, struct message *message){
@@ -290,10 +336,85 @@ void send_subscriber_msg(int sockfd, struct message *message){
     simple_send(sockfd, &message->data, sizeof(message->data), 0);
 }
 
-void recv_subscriber_msg(int sockfd, struct publish *msg){
-    simple_recv(sockfd, msg, sizeof(struct publish), 0);
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    struct timespec latency = diff_timespec(&ts, &msg->time_generated_data);
-    printf("[%ld.%ld] Recibido mensaje: %s - Generó: %ld.%ld - Recibido: %ld.%ld - Latencia: %ld.%ld.\n", ts.tv_sec, ts.tv_nsec, msg->data, msg->time_generated_data.tv_sec, msg->time_generated_data.tv_nsec, ts.tv_sec, ts.tv_nsec, latency.tv_sec, latency.tv_nsec);
+//==============================================================================
+//THREAD FUNCTIONS
+
+
+void * accept_thread(void *arg) {
+    struct accept_thread_args *args = (struct accept_thread_args *) arg;
+    int sockfd = args->sockfd;
+    struct client_list *cl = args->cl;
+
+    while(1){
+        int connfd=accept_new_client(sockfd);
+        struct message msg;
+        recv_register_msg(connfd, &msg, cl);
+        //now we have the client in the database, we can accept another client
+    }
+    warnx("Accept thread finished");
+    return NULL;
+}
+
+void * fordwarder_thread(void *arg) {
+    struct fordwarder_thread_args *args = (struct fordwarder_thread_args *) arg;
+    struct client_list *cl = args->cl;
+
+    int connfds[PUBLISHERS_MAX];
+    struct pollfd fds[PUBLISHERS_MAX];
+    while(1){
+        int publishers_count=get_all_publishers(cl, connfds);
+        for (int i = 0; i < publishers_count; i++) {
+            fds[i].fd = connfds[i];
+            fds[i].events = POLLIN;
+        }
+        // Wait for a message from any publisher
+        // if no message is received in 1 second, update the list of publishers
+        int ret = poll(fds, publishers_count, 1000);
+        if (ret < 0) {
+            warn("poll");
+            continue;
+        }
+        // Receive the message from the publisher
+        for (int i = 0; i < publishers_count; i++) {
+            if (fds[i].revents & POLLIN) {
+                struct message msg;
+                recv_publisher_msg(fds[i].fd, &msg, cl);
+            }
+        }
+    }
+    warnx("Fordwarder thread finished");
+    return NULL;
+}
+
+void * subscriber_thread(void *arg) {
+    struct subscriber_thread_args *args = (struct subscriber_thread_args *) arg;
+    struct client_list *cl = args->cl;
+
+    int connfds[SUBSCRIBERS_MAX];
+    struct pollfd fds[SUBSCRIBERS_MAX];
+
+    while(1){
+        int n_subs=get_all_subscribers(cl, connfds);
+        for (int i = 0; i < n_subs; i++) {
+            fds[i].fd = connfds[i];
+            fds[i].events = POLLIN;
+        }
+        // Wait for a message from any subscriber
+        // if no message is received in 1 second, update the list of subscribers
+        int ret = poll(fds, n_subs, 1000);
+        if (ret < 0) {
+            warn("poll");
+            continue;
+        }
+        // Receive the message from the subscriber
+        for (int i = 0; i < n_subs; i++) {
+            if (fds[i].revents & POLLIN) {
+                struct message msg;
+                recv_unregister_subscriber_msg(fds[i].fd, &msg, cl);
+            }
+        }
+    }
+
+    warnx("Subscriber thread finished");
+    return NULL;
 }

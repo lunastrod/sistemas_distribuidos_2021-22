@@ -1,6 +1,17 @@
+// std
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include <getopt.h>
+// threads
+#include <pthread.h>
 
 #include "proxy.h"
+
+
 
 //./broker --port $BROKER_PORT --mode $MODE
 
@@ -72,20 +83,30 @@ int main(int argc, char **argv) {
     struct client_list clients;
     init_client_list(&clients);
     
-    int pub_connfd=accept_new_client(sockfd);
-    int sub_connfd=accept_new_client(sockfd);
+    struct broker_threads threads;
+    //create the accept thread
+    //this thread will accept new connections and add them to the client list
+    struct accept_thread_args accept_args;
+    accept_args.sockfd = sockfd;
+    accept_args.cl = &clients;
+    pthread_create(&threads.accept_thread, NULL, accept_thread, &accept_args);
 
-    struct message msg;
-    recv_client_msg(pub_connfd, &msg, &clients);
-    recv_client_msg(sub_connfd, &msg, &clients);
-    recv_client_msg(pub_connfd, &msg, &clients);
-    recv_client_msg(pub_connfd, &msg, &clients);
-    recv_client_msg(sub_connfd, &msg, &clients);
-    recv_client_msg(pub_connfd, &msg, &clients);
-    recv_client_msg(sub_connfd, &msg, &clients);
-    recv_client_msg(pub_connfd, &msg, &clients);
-    recv_client_msg(pub_connfd, &msg, &clients);
-    recv_client_msg(sub_connfd, &msg, &clients);
+    //create the fordwarder thread
+    //this thread will forward messages from the publishers to the subscribers
+    struct fordwarder_thread_args fordwarder_args;
+    fordwarder_args.cl = &clients;
+    pthread_create(&threads.fordwarder_thread, NULL, fordwarder_thread, &fordwarder_args);
+
+    //create the subscriber thread
+    //this thread will be in charge of attending the UNREGISTER_SUBSCRIBER messages
+    struct subscriber_thread_args subscriber_args;
+    subscriber_args.cl = &clients;
+    pthread_create(&threads.subscriber_thread, NULL, subscriber_thread, &subscriber_args);
+
+    pthread_join(threads.accept_thread, NULL);
+    pthread_join(threads.fordwarder_thread, NULL);
+    pthread_join(threads.subscriber_thread, NULL);
+    warnx("threads joined");
 
     close_connection(sockfd);
     return 0;

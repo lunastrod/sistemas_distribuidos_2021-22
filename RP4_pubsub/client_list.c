@@ -1,6 +1,17 @@
+// std
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+// threads
+#include <pthread.h>
+
 #include "client_list.h"
 
 #define DEBUG 0
+
+pthread_mutex_t client_list_mutex;
 
 void print_debug2(char *msg) {
     if (DEBUG) {
@@ -57,6 +68,7 @@ void init_client_list(struct client_list *cl) {
     cl->pub_counter = 0;
     cl->sub_counter = 0;
     cl->id_counter = 0;
+    pthread_mutex_init(&client_list_mutex, NULL);
 }
 
 
@@ -86,11 +98,15 @@ int n_clients(struct client *clients, int size) {
 }
 
 int add_client(struct client_list *cl, enum client_type ct, char *topic, int socket) {
+    print_debug2("before add_client lock");
+    pthread_mutex_lock(&client_list_mutex);
     if (ct == PUBLISHER && cl->pub_counter == PUBLISHERS_MAX) {
         print_debug2("too many publishers");
+        pthread_mutex_unlock(&client_list_mutex);
         return -1;
     } else if (ct == SUBSCRIBER && cl->sub_counter == SUBSCRIBERS_MAX) {
         print_debug2("too many subscribers");
+        pthread_mutex_unlock(&client_list_mutex);
         return -1;
     }
     int i = 0;
@@ -99,6 +115,7 @@ int add_client(struct client_list *cl, enum client_type ct, char *topic, int soc
     }
     if (i == TOPICS_MAX) {
         print_debug2("too many topics");
+        pthread_mutex_unlock(&client_list_mutex);
         return -1;
     }
     // now i is the index of the topic
@@ -130,10 +147,13 @@ int add_client(struct client_list *cl, enum client_type ct, char *topic, int soc
         cl->topics[i].subs[j].socket = socket;
         cl->sub_counter++;
     }
+    pthread_mutex_unlock(&client_list_mutex);
     return client_id;
 }
 
 void remove_client(struct client_list *cl, enum client_type ct, char *topic, int id) {
+    print_debug2("before remove_client lock");
+    pthread_mutex_lock(&client_list_mutex);
     int i = 0;
     // search for topic with same name
     while (strncmp(cl->topics[i].name, topic, TOPIC_NAME_SIZE) != 0 && i < TOPICS_MAX) {
@@ -141,6 +161,7 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
     }
     if(i == TOPICS_MAX){
         print_debug2("topic not found");
+        pthread_mutex_unlock(&client_list_mutex);
         return;
     }
     // now i is the index of the topic
@@ -153,6 +174,7 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
         }
         if(j == PUBLISHERS_MAX){
             print_debug2("publisher not found, invalid id");
+            pthread_mutex_unlock(&client_list_mutex);
             return;
         }
         // now j is the index of the publisher
@@ -167,6 +189,7 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
         }
         if(j == SUBSCRIBERS_MAX){
             print_debug2("subscriber not found, invalid id");
+            pthread_mutex_unlock(&client_list_mutex);
             return;
         }
         // now j is the index of the subscriber
@@ -179,6 +202,7 @@ void remove_client(struct client_list *cl, enum client_type ct, char *topic, int
         print_debug2("topic is empty, removing");
         bzero(cl->topics[i].name, TOPIC_NAME_SIZE);
     }
+    pthread_mutex_unlock(&client_list_mutex);
 }
 
 int get_new_id(struct client_list *cl, enum client_type ct) {
@@ -186,6 +210,8 @@ int get_new_id(struct client_list *cl, enum client_type ct) {
 }
 
 int get_subscribers(struct client_list *cl, char *topic, int *connfds) {
+    print_debug2("before get_subscribers lock");
+    pthread_mutex_lock(&client_list_mutex);
     int i = 0;
     // search for topic with same name
     while (strncmp(cl->topics[i].name, topic, TOPIC_NAME_SIZE) != 0 && i < TOPICS_MAX) {
@@ -193,6 +219,7 @@ int get_subscribers(struct client_list *cl, char *topic, int *connfds) {
     }
     if(i == TOPICS_MAX){
         print_debug2("topic not found");
+        pthread_mutex_unlock(&client_list_mutex);
         return -1;
     }
     // now i is the index of the topic
@@ -206,5 +233,42 @@ int get_subscribers(struct client_list *cl, char *topic, int *connfds) {
             k++;
         }
     }
+    pthread_mutex_unlock(&client_list_mutex);
+    return k;
+}
+
+int get_all_publishers(struct client_list *cl, int *connfds) {
+    print_debug2("before get_all_publishers lock");
+    pthread_mutex_lock(&client_list_mutex);
+    int k=0;
+    for(int i=0; i<TOPICS_MAX; i++){
+        if(cl->topics[i].name[0] != '\0'){
+            for(int j=0; j<PUBLISHERS_MAX; j++){
+                if(cl->topics[i].pubs[j].id != -1){
+                    connfds[k] = cl->topics[i].pubs[j].socket;
+                    k++;
+                }
+            }
+        }
+    }
+    pthread_mutex_unlock(&client_list_mutex);
+    return k;
+}
+
+int get_all_subscribers(struct client_list *cl, int *connfds) {
+    print_debug2("before get_all_subscribers lock");
+    pthread_mutex_lock(&client_list_mutex);
+    int k=0;
+    for(int i=0; i<TOPICS_MAX; i++){
+        if(cl->topics[i].name[0] != '\0'){
+            for(int j=0; j<SUBSCRIBERS_MAX; j++){
+                if(cl->topics[i].subs[j].id != -1){
+                    connfds[k] = cl->topics[i].subs[j].socket;
+                    k++;
+                }
+            }
+        }
+    }
+    pthread_mutex_unlock(&client_list_mutex);
     return k;
 }

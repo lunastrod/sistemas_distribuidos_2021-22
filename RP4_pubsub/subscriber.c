@@ -1,4 +1,13 @@
+// std
+#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <signal.h>
 #include <getopt.h>
+
 #include "proxy.h"
 
 //./subscriber --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC
@@ -49,19 +58,36 @@ void parse_args(int argc, char **argv, struct main_args *args) {
     }
 }
 
+struct sigint_handler_args {
+    int connfd;
+    int id;
+    char* topic;
+};
 
+// Signal handler for SIGINT
+void sigint_handler(int signum) {
+    send_config(connfd, UNREGISTER_SUBSCRIBER, topic, id);
+    exit(0);
+}
 
 int main(int argc, char **argv) {
     struct main_args args;
     parse_args(argc, argv, &args);
 
     int connfd = setup_subscriber(args.ip, args.port);
-    int id = send_config_msg(connfd, REGISTER_SUBSCRIBER, args.topic, 0);
+    int id = send_config(connfd, REGISTER_SUBSCRIBER, args.topic, 0);
 
+    struct sigint_handler_args sigint_args;
+    sigint_args.connfd = connfd;
+    sigint_args.id = id;
+    sigint_args.topic = args.topic;
+
+    signal(SIGINT, sigint_handler);
     struct publish msg;
-    recv_subscriber_msg(connfd, &msg);
+    while(1){
+        subscribe(connfd, topic, &msg);
+    }
 
-    sleep(1);
-    send_config_msg(connfd, UNREGISTER_SUBSCRIBER, args.topic, id);
+    send_config(connfd, UNREGISTER_SUBSCRIBER, args.topic, id);
     return 0;
 }

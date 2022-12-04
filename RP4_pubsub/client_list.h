@@ -1,10 +1,3 @@
-// std
-#include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #define TOPIC_NAME_SIZE 100
 #define TOPICS_MAX 10
 #define PUBLISHERS_MAX 100
@@ -34,11 +27,15 @@ enum client_type{
 };
 
 void init_client_list(struct client_list *cl);
-void print_client_list(struct client_list *cl);
-int n_clients(struct client *clients, int size);
-int get_new_id(struct client_list *cl, enum client_type ct);
+
+//thread safe:
 int add_client(struct client_list *cl, enum client_type ct, char *topic, int socket);
 void remove_client(struct client_list *cl, enum client_type ct, char *topic, int id);
 int get_subscribers(struct client_list *cl, char *topic, int *connfds);//connfds is an array of SUBSCRIBERS_MAX sockets, returns the number of subscribers
+int get_all_publishers(struct client_list *cl, int *connfds);//connfd is an array of PUBLISHERS_MAX sockets, returns the number of publishers
+int get_all_subscribers(struct client_list *cl, int *connfds);//connfd is an array of SUBSCRIBERS_MAX sockets, returns the number of subscribers
 
-
+//private:
+void print_client_list(struct client_list *cl);
+int n_clients(struct client *clients, int size);
+int get_new_id(struct client_list *cl, enum client_type ct);

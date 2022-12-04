@@ -15,6 +15,7 @@
         "random": "c",
         "sstream": "c",
         "proxy.h": "c",
-        "thread": "c"
+        "thread": "c",
+        "err.h": "c"
     }
 }
