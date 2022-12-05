@@ -64,9 +64,11 @@ struct sigint_handler_args {
     char* topic;
 };
 
+volatile struct sigint_handler_args sigint_args;
+
 // Signal handler for SIGINT
-void sigint_handler(int signum) {
-    send_config(connfd, UNREGISTER_SUBSCRIBER, topic, id);
+void sigint_handler(int signum){
+    send_config(sigint_args.connfd, UNREGISTER_SUBSCRIBER, sigint_args.topic, sigint_args.id);
     exit(0);
 }
 
@@ -77,15 +79,33 @@ int main(int argc, char **argv) {
     int connfd = setup_subscriber(args.ip, args.port);
     int id = send_config(connfd, REGISTER_SUBSCRIBER, args.topic, 0);
 
+    /*
     struct sigint_handler_args sigint_args;
+    sigint_args.connfd = connfd;
+    printf("connfd: %d\n", sigint_args.connfd);
+    sigint_args.id = id;
+    printf("id: %d\n", sigint_args.id);
+    sigint_args.topic = args.topic;
+    printf("topic: %s\n", sigint_args.topic);
+    volatile struct sigint_handler_args *sigint_args_ptr= &sigint_args;
+    printf("sigint_args_ptr: %p\n", sigint_args_ptr);
+
+    struct sigaction action;
+    action.sa_sigaction = sigint_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_SIGINFO;
+    sigaction(SIGINT, &action, (void*)sigint_args_ptr);
+    */
+
     sigint_args.connfd = connfd;
     sigint_args.id = id;
     sigint_args.topic = args.topic;
 
     signal(SIGINT, sigint_handler);
+
     struct publish msg;
     while(1){
-        subscribe(connfd, topic, &msg);
+        subscribe(connfd, args.topic, &msg);
     }
 
     send_config(connfd, UNREGISTER_SUBSCRIBER, args.topic, id);
