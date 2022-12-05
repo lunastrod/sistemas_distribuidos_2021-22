@@ -238,7 +238,7 @@ void publish(int sockfd, char *topic, char *data, int data_size) {
     strncpy(msg.data.data, data, data_size);
     clock_gettime(CLOCK_REALTIME, &msg.data.time_generated_data);
     simple_send(sockfd, &msg, sizeof(msg), 0);
-    printf("[%lf] Publicado mensaje topic: %s - \nmensaje: \"%s\" \n- Generó: %lf \n", timespec_to_d(&msg.data.time_generated_data), msg.topic, msg.data.data, timespec_to_d(&msg.data.time_generated_data));
+    printf("[%lf] Publicado mensaje topic: %s - mensaje: \"%s\" - Generó: %lf \n", timespec_to_d(&msg.data.time_generated_data), msg.topic, msg.data.data, timespec_to_d(&msg.data.time_generated_data));
 }
 
 void subscribe(int sockfd, char *topic, struct publish *msg) {
@@ -246,7 +246,7 @@ void subscribe(int sockfd, char *topic, struct publish *msg) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     struct timespec latency = diff_timespec(&ts, &msg->time_generated_data);
-    printf("[%lf] Recibido mensaje topic: %s - \nmensaje: \"%s\" \n- Generó: %lf - Recibido: %lf - Latencia: %lf.\n", timespec_to_d(&ts), topic, msg->data, timespec_to_d(&msg->time_generated_data), timespec_to_d(&ts), timespec_to_d(&latency));
+    printf("[%lf] Recibido mensaje topic: %s - mensaje: \"%s\" - Generó: %lf - Recibido: %lf - Latencia: %lf.\n", timespec_to_d(&ts), topic, msg->data, timespec_to_d(&msg->time_generated_data), timespec_to_d(&ts), timespec_to_d(&latency));
 }
 
 //==============================================================================
@@ -291,7 +291,7 @@ void recv_publisher_msg(int sockfd, struct message *message, struct client_list 
         printf("[%lf] Eliminado cliente (%d) Publicador : %s \n", timespec_to_d(&ts), message->id, message->topic);
         close_connection(sockfd);
     } else if (message->action == PUBLISH_DATA) {
-        printf("[%lf] Recibido mensaje para publicar en topic: %s - \nmensaje: \"%s\"\n - Generó: %lf \n", timespec_to_d(&ts), message->topic, message->data.data, timespec_to_d(&message->data.time_generated_data));
+        printf("[%lf] Recibido mensaje para publicar en topic: %s - mensaje: \"%s\" - Generó: %lf \n", timespec_to_d(&ts), message->topic, message->data.data, timespec_to_d(&message->data.time_generated_data));
         int subs_connfds[SUBSCRIBERS_MAX];
         int subs_count = get_subscribers(client_list, message->topic, subs_connfds);
         switch (mode) {
