@@ -331,11 +331,60 @@ void sequential_fordwarder(int *connfds, int connfds_size, struct message *msg) 
         send_subscriber_msg(connfds[i], msg);
     }
 }
+
+struct parallel_fordwarder_thread_args {
+    int connfd;
+    struct message *msg;
+};
+void * parallel_fordwarder_thread(void *arg) {
+    struct parallel_fordwarder_thread_args *args = (struct parallel_fordwarder_thread_args *) arg;
+    send_subscriber_msg(args->connfd, args->msg);
+    return NULL;
+}
 void parallel_fordwarder(int *connfds, int connfds_size, struct message *msg) {
-    warnx("Error: parallel_fordwarder() not implemented");
+    //use threads
+    pthread_t *threads=malloc(sizeof(pthread_t)*connfds_size);
+    struct parallel_fordwarder_thread_args *args=malloc(sizeof(struct parallel_fordwarder_thread_args)*connfds_size);
+    for (int i = 0; i < connfds_size; i++) {
+        args[i].connfd=connfds[i];
+        args[i].msg=msg;
+        pthread_create(&threads[i], NULL, parallel_fordwarder_thread, &args[i]);
+    }
+    for (int i = 0; i < connfds_size; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    free(threads);
+    free(args);
+}
+
+struct fair_fordwarder_thread_args {
+    int connfd;
+    struct message *msg;
+    pthread_barrier_t *barrier;
+};
+void * fair_fordwarder_thread(void *arg) {
+    struct fair_fordwarder_thread_args *args = (struct fair_fordwarder_thread_args *) arg;
+    pthread_barrier_wait(args->barrier);
+    send_subscriber_msg(args->connfd, args->msg);
+    return NULL;
 }
 void fair_fordwarder(int *connfds, int connfds_size, struct message *msg) {
-    warnx("Error: fair_fordwarder() not implemented");
+    //use threads and barrier
+    pthread_t *threads=malloc(sizeof(pthread_t)*connfds_size);
+    struct fair_fordwarder_thread_args *args=malloc(sizeof(struct fair_fordwarder_thread_args)*connfds_size);
+    pthread_barrier_t barrier;
+    pthread_barrier_init(&barrier, NULL, connfds_size);
+    for (int i = 0; i < connfds_size; i++) {
+        args[i].connfd=connfds[i];
+        args[i].msg=msg;
+        args[i].barrier=&barrier;
+        pthread_create(&threads[i], NULL, fair_fordwarder_thread, &args[i]);
+    }
+    for (int i = 0; i < connfds_size; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    free(threads);
+    free(args);
 }
 
 void send_response_msg(int sockfd, enum status response_status, int id) {
