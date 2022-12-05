@@ -16,6 +16,7 @@
         "sstream": "c",
         "proxy.h": "c",
         "thread": "c",
-        "err.h": "c"
+        "err.h": "c",
+        "system_error": "c"
     }
 }

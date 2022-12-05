@@ -15,12 +15,6 @@
 
 //./broker --port $BROKER_PORT --mode $MODE
 
-enum broker_mode {
-    MODE_SECUENTIAL=0,
-    MODE_PARALLEL=1,
-    MODE_FAIR=2
-};
-
 struct main_args {
     int port;
     enum broker_mode mode;
@@ -51,7 +45,7 @@ void parse_args(int argc, char **argv, struct main_args *args) {
                 break;
             case 'm':
                 if (strcmp(optarg, "secuencial") == 0) {
-                    args->mode = MODE_SECUENTIAL;
+                    args->mode = MODE_SEQUENTIAL;
                 } 
                 else if (strcmp(optarg, "paralelo") == 0) {
                     args->mode = MODE_PARALLEL;
@@ -95,6 +89,7 @@ int main(int argc, char **argv) {
     //this thread will forward messages from the publishers to the subscribers
     struct fordwarder_thread_args fordwarder_args;
     fordwarder_args.cl = &clients;
+    fordwarder_args.mode = args.mode;
     pthread_create(&threads.fordwarder_thread, NULL, fordwarder_thread, &fordwarder_args);
 
     //create the subscriber thread
