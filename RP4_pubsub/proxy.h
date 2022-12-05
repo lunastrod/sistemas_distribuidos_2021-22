@@ -2,6 +2,7 @@
 
 /*
 TODO:
+create threads for each publisher instead of using poll
 */
 
 enum operations {

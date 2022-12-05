@@ -284,7 +284,7 @@ void recv_register_msg(int sockfd, struct message *message, struct client_list *
         }
         else{
             send_response_msg(sockfd, STATUS_OK, id);
-            printf("[%lf] Nuevo cliente (%d) Suscriptor conectado : %s \n", timespec_to_d(&ts), 1, message->topic);
+            printf("[%lf] Nuevo cliente (%d) Suscriptor conectado : %s \n", timespec_to_d(&ts), id, message->topic);
             print_client_list(client_list);
         }
     }
@@ -320,7 +320,7 @@ void recv_unregister_subscriber_msg(int sockfd, struct message *message, struct 
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     if(message->action == UNREGISTER_SUBSCRIBER){
-        printf("[%lf] Eliminado cliente (%d) Suscriptor : %s \n", timespec_to_d(&ts), 1, message->topic);
+        printf("[%lf] Eliminado cliente (%d) Suscriptor : %s \n", timespec_to_d(&ts), message->id, message->topic);
         remove_client(client_list, SUBSCRIBER, message->topic, message->id);
         close_connection(sockfd);
     }

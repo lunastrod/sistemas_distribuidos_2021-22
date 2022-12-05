@@ -93,10 +93,6 @@ int main(int argc, char **argv) {
         int num_ready_fds = select(connfd + 1, &read_fds, NULL, NULL, &timeout);
         if (num_ready_fds > 0) {
             subscribe(connfd, args.topic, &msg);
-        } else if (num_ready_fds == 0) {
-            continue;//check if sigint_received
-        } else {
-            warn("select() failed");
         }
     }
 

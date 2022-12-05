@@ -25,7 +25,7 @@ void get_cpu_load(char * load) {
   fscanf(file, "%f %f %f", &avg1, &avg5, &avg15);
   fclose(file);
 
-  snprintf(load, 100, "cpu load:  1m: %.2f  5m: %.2f  15: %.2f", avg1, avg5, avg15);
+  snprintf(load, 100, "cpu load:  1m: %.2f%%  5m: %.2f%%  15: %.2f%%", avg1, avg5, avg15);
 }
 
 void parse_args(int argc, char **argv, struct main_args *args) {
@@ -88,7 +88,10 @@ int main(int argc, char **argv) {
         char load[100];
         get_cpu_load(load);
         publish(connfd, args.topic, load, strlen(load));
-        sleep(3);
+        for(int i=0; i<3; i++){//sleep 3 seconds checking for SIGINT
+            if(sigint_received) break;
+            sleep(1);
+        }
     }
 
     send_config(connfd, UNREGISTER_PUBLISHER, args.topic, id);
