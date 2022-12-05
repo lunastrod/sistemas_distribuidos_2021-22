@@ -88,8 +88,7 @@ int main(int argc, char **argv) {
         char load[100];
         get_cpu_load(load);
         publish(connfd, args.topic, load, strlen(load));
-        for(int i=0; i<3; i++){//sleep 3 seconds checking for SIGINT
-            if(sigint_received) break;
+        for(int i=0; i<3 && !sigint_received; i++){//sleep 3 seconds checking for SIGINT
             sleep(1);
         }
     }
