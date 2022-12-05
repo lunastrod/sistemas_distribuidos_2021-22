@@ -58,18 +58,15 @@ void parse_args(int argc, char **argv, struct main_args *args) {
     }
 }
 
-struct sigint_handler_args {
-    int connfd;
-    int id;
-    char* topic;
-};
 
-volatile struct sigint_handler_args sigint_args;
+
+// Flag to indicate that SIGINT has been received
+volatile sig_atomic_t sigint_received = 0;
+
 
 // Signal handler for SIGINT
 void sigint_handler(int signum){
-    send_config(sigint_args.connfd, UNREGISTER_SUBSCRIBER, sigint_args.topic, sigint_args.id);
-    exit(0);
+    sigint_received=1;
 }
 
 int main(int argc, char **argv) {
@@ -79,15 +76,28 @@ int main(int argc, char **argv) {
     int connfd = setup_subscriber(args.ip, args.port);
     int id = send_config(connfd, REGISTER_SUBSCRIBER, args.topic, 0);
 
-    sigint_args.connfd = connfd;
-    sigint_args.id = id;
-    sigint_args.topic = args.topic;
+    // Set up the timeout for select()
+    struct timeval timeout;
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
 
     signal(SIGINT, sigint_handler);
 
     struct publish msg;
-    while(1){
-        subscribe(connfd, args.topic, &msg);
+    while(!sigint_received){
+        // Set up the file descriptor sets for select()
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(connfd, &read_fds);
+        // Call select() to see if connfd has data available to be read
+        int num_ready_fds = select(connfd + 1, &read_fds, NULL, NULL, &timeout);
+        if (num_ready_fds > 0) {
+            subscribe(connfd, args.topic, &msg);
+        } else if (num_ready_fds == 0) {
+            continue;//check if sigint_received
+        } else {
+            warn("select() failed");
+        }
     }
 
     send_config(connfd, UNREGISTER_SUBSCRIBER, args.topic, id);

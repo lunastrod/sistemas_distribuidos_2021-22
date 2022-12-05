@@ -1,5 +1,9 @@
 #include "client_list.h"
 
+/*
+TODO:
+*/
+
 enum operations {
     REGISTER_PUBLISHER = 0,
     UNREGISTER_PUBLISHER,

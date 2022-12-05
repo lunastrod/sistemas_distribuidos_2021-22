@@ -28,7 +28,6 @@ void get_cpu_load(char * load) {
   snprintf(load, 100, "cpu load:  1m: %.2f  5m: %.2f  15: %.2f", avg1, avg5, avg15);
 }
 
-
 void parse_args(int argc, char **argv, struct main_args *args) {
     // Default values
     args->ip = NULL;
