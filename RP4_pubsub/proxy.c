@@ -294,6 +294,7 @@ void recv_publisher_msg(int sockfd, struct message *message, struct client_list 
         printf("[%lf] Recibido mensaje para publicar en topic: %s - mensaje: \"%s\" - Generó: %lf \n", timespec_to_d(&ts), message->topic, message->data.data, timespec_to_d(&message->data.time_generated_data));
         int subs_connfds[SUBSCRIBERS_MAX];
         int subs_count = get_subscribers(client_list, message->topic, subs_connfds);
+        printf("[%lf] Enviando mensaje en topic %s a %d suscriptores. \n", timespec_to_d(&ts), message->topic, subs_count);
         switch (mode) {
             case MODE_SEQUENTIAL:
                 sequential_fordwarder(subs_connfds, subs_count, message);
@@ -397,7 +398,6 @@ void send_response_msg(int sockfd, enum status response_status, int id) {
 void send_subscriber_msg(int sockfd, struct message *message) {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
-    printf("[%lf] Enviando mensaje en topic %s a %d suscriptores. \n", timespec_to_d(&ts), message->topic, 1);
     simple_send(sockfd, &message->data, sizeof(message->data), 0);
 }
 

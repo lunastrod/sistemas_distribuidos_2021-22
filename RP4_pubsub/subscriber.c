@@ -76,15 +76,14 @@ int main(int argc, char **argv) {
     int connfd = setup_subscriber(args.ip, args.port);
     int id = send_config(connfd, REGISTER_SUBSCRIBER, args.topic, 0);
 
-    // Set up the timeout for select()
-    struct timeval timeout;
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
-
     signal(SIGINT, sigint_handler);
 
     struct publish msg;
     while(!sigint_received){
+        // Set up the timeout for select()
+        struct timeval timeout;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
         // Set up the file descriptor sets for select()
         fd_set read_fds;
         FD_ZERO(&read_fds);
