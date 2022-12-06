@@ -73,7 +73,7 @@ void publish(int sockfd, char *topic, char *data, int data_size);
 void subscribe(int sockfd, char *topic, struct publish *publish);
 
 // BROKER
-void recv_register_msg(int sockfd, struct message *message, struct client_list *client_list);                          // register (called by the accept thread)
+void recv_register_msg(int sockfd, struct message *message, struct client_list *client_list,enum broker_mode mode);                          // register (called by the accept thread)
 void recv_publisher_msg(int sockfd, struct message *message, struct client_list *client_list, enum broker_mode mode);  // unregister publisher or publish_data (called by the fordwarder thread)
 void recv_unregister_subscriber_msg(int sockfd, struct message *message, struct client_list *client_list);             // unregister subscriber (called by the unregister_sub thread)
 
@@ -87,17 +87,18 @@ void send_subscriber_msg(int sockfd, struct message *message);            // bro
 // THREAD FUNCTIONS
 struct broker_threads {
     pthread_t accept_thread;
-    pthread_t fordwarder_thread;  // recv messages from publishers and send them to subscribers
-    pthread_t subscriber_thread;  // recv unregister messages from subscribers and modify the client list
+    pthread_t subscriber_thread;
 };
 struct accept_thread_args {
     int sockfd;
     struct client_list *cl;
+    enum broker_mode mode;
 };
 void *accept_thread(void *args);
 struct fordwarder_thread_args {
     struct client_list *cl;
     enum broker_mode mode;
+    int connfd;
 };
 void *fordwarder_thread(void *args);
 struct subscriber_thread_args {

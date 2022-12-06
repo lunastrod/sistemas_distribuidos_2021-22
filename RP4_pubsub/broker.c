@@ -85,13 +85,6 @@ int main(int argc, char **argv) {
     accept_args.cl = &clients;
     pthread_create(&threads.accept_thread, NULL, accept_thread, &accept_args);
 
-    //create the fordwarder thread
-    //this thread will forward messages from the publishers to the subscribers
-    struct fordwarder_thread_args fordwarder_args;
-    fordwarder_args.cl = &clients;
-    fordwarder_args.mode = args.mode;
-    pthread_create(&threads.fordwarder_thread, NULL, fordwarder_thread, &fordwarder_args);
-
     //create the subscriber thread
     //this thread will be in charge of attending the UNREGISTER_SUBSCRIBER messages
     struct subscriber_thread_args subscriber_args;
@@ -99,7 +92,6 @@ int main(int argc, char **argv) {
     pthread_create(&threads.subscriber_thread, NULL, subscriber_thread, &subscriber_args);
 
     pthread_join(threads.accept_thread, NULL);
-    pthread_join(threads.fordwarder_thread, NULL);
     pthread_join(threads.subscriber_thread, NULL);
     warnx("threads joined");
 

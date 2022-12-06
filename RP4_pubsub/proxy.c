@@ -252,20 +252,26 @@ void subscribe(int sockfd, char *topic, struct publish *msg) {
 //==============================================================================
 // BROKER
 
-void recv_register_msg(int sockfd, struct message *message, struct client_list *client_list) {
+void recv_register_msg(int sockfd, struct message *message, struct client_list *client_list, enum broker_mode mode) {
     simple_recv(sockfd, message, sizeof(struct message), 0);
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     if (message->action == REGISTER_PUBLISHER) {
         int id = add_client(client_list, PUBLISHER, message->topic, sockfd);
-
         if (id < 0) {
             send_response_msg(sockfd, STATUS_LIMIT, id);
             warnx("[%lf] Error al hacer el registro: error=%d (%s)\n", timespec_to_d(&ts), id, id == -1 ? "LIMIT" : "ERROR");
         } else {
             send_response_msg(sockfd, STATUS_OK, id);
+            struct fordwarder_thread_args *args = malloc(sizeof(struct fordwarder_thread_args));
+            args->cl = client_list;
+            args->connfd= sockfd;
+            args->mode=mode;
+            pthread_t thread;
+            pthread_create(&thread,NULL,fordwarder_thread,args);
             printf("[%lf] Nuevo cliente (%d) Publicador conectado : %s \n", timespec_to_d(&ts), id, message->topic);
             print_client_list(client_list);
+
         }
     } else if (message->action == REGISTER_SUBSCRIBER) {
         int id = add_client(client_list, SUBSCRIBER, message->topic, sockfd);
@@ -408,11 +414,12 @@ void *accept_thread(void *arg) {
     struct accept_thread_args *args = (struct accept_thread_args *)arg;
     int sockfd = args->sockfd;
     struct client_list *cl = args->cl;
+    enum broker_mode mode = args->mode;
 
     while (1) {
         int connfd = accept_new_client(sockfd);
         struct message msg;
-        recv_register_msg(connfd, &msg, cl);
+        recv_register_msg(connfd, &msg, cl, mode);
         // now we have the client in the database, we can accept another client
     }
     warnx("Accept thread finished");
@@ -421,8 +428,46 @@ void *accept_thread(void *arg) {
 
 void *fordwarder_thread(void *arg) {
     struct fordwarder_thread_args *args = (struct fordwarder_thread_args *)arg;
-    struct client_list *cl = args->cl;
+    struct client_list *client_list = args->cl;
+    enum broker_mode mode = args->mode;
+    int sockfd = args->connfd;
+    free(args);
 
+    while (1) {
+        struct message msg;
+        struct message *message=&msg;
+        simple_recv(sockfd, message, sizeof(struct message), 0);
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        if (message->action == UNREGISTER_PUBLISHER) {
+            remove_client(client_list, PUBLISHER, message->topic, message->id);
+            printf("[%lf] Eliminado cliente (%d) Publicador : %s \n", timespec_to_d(&ts), message->id, message->topic);
+            close_connection(sockfd);
+            return NULL;
+        } else if (message->action == PUBLISH_DATA) {
+            printf("[%lf] Recibido mensaje para publicar en topic: %s - mensaje: \"%s\" - Generó: %lf \n", timespec_to_d(&ts), message->topic, message->data.data, timespec_to_d(&message->data.time_generated_data));
+            int subs_connfds[SUBSCRIBERS_MAX];
+            int subs_count = get_subscribers(client_list, message->topic, subs_connfds);
+            printf("[%lf] Enviando mensaje en topic %s a %d suscriptores. \n", timespec_to_d(&ts), message->topic, subs_count);
+            switch (mode) {
+                case MODE_SEQUENTIAL:
+                    sequential_fordwarder(subs_connfds, subs_count, message);
+                    break;
+                case MODE_PARALLEL:
+                    parallel_fordwarder(subs_connfds, subs_count, message);
+                    break;
+                case MODE_FAIR:
+                    fair_fordwarder(subs_connfds, subs_count, message);
+                    break;
+                default:
+                    warnx("Error: recv_publisher_msg() invalid mode %d", mode);
+                    break;
+            }
+        } else {
+            warnx("Error: recv_publisher_msg() recv invalid action %d", message->action);
+        }
+    }
+    /*
     int connfds[PUBLISHERS_MAX];
     struct pollfd fds[PUBLISHERS_MAX];
     while (1) {
@@ -447,6 +492,7 @@ void *fordwarder_thread(void *arg) {
         }
     }
     warnx("Fordwarder thread finished");
+    */
     return NULL;
 }
 
