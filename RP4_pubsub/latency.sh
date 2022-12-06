@@ -42,8 +42,8 @@ sleep 0.25
 sleep 2
 
 echo brokers
-ps aux | grep -v grep| grep broker | wc -l
+ps aux | grep -v grep| grep broker | wc -l > latency/pcount.txt
 echo subscribers
-ps aux | grep -v grep| grep subscriber | wc -l
+ps aux | grep -v grep| grep subscriber | wc -l > latency/pcount.txt
 echo publishers
-ps aux | grep -v grep| grep publisher | wc -l
+ps aux | grep -v grep| grep publisher | wc -l > latency/pcount.txt
