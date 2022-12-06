@@ -2,7 +2,7 @@
 
 /*
 TODO:
-create threads for each publisher instead of using poll
+create threads for each publisher and subscriber instead of using poll in the accept thread
 */
 
 enum operations {

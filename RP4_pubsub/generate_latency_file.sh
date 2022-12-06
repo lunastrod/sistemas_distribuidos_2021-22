@@ -9,11 +9,13 @@ NDATA=$5
 
 TOPIC="cpu-usage"
 
-./broker --port $BROKER_PORT --mode $MODE &
+./broker --port $BROKER_PORT --mode $MODE 2>&1 | tee $FILENAME"_broker.txt" &
 
+
+sleep 1
 # Ejecuta 1 publicador asociado al mismo TOPIC y deja que genere al menos 100
 # datos nuevos para publicar.
-./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC &
+./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC 2>&1 | tee $FILENAME"_publisher.txt" &
 
 sleep 1
 
@@ -40,12 +42,9 @@ for i in $(seq 1 $NUM_SUBSCRIBERS); do
     cat $FILENAME"_"$i.txt | grep -o "Latencia: [0-9.]*" | sed -E 's/Latencia: ([0-9.]*)./\1/g' >> $FILENAME.txt
 done
 
-# delete the files with the latency data
-for i in $(seq 1 $NUM_SUBSCRIBERS); do
-    rm $FILENAME"_"$i.txt
-done
+
 
 # append to the results file
-python3 latency_csv.py $FILENAME.txt latency/results_latency.csv $MODE $NUM_SUBSCRIBERS && rm $FILENAME.txt
+python3 latency_csv.py $FILENAME.txt latency/results_latency.csv $MODE $NUM_SUBSCRIBERS && rm $FILENAME.txt && rm $FILENAME"_"*.txt
 
 exit 0
