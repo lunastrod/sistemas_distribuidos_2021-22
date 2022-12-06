@@ -373,6 +373,8 @@ void * fair_fordwarder_thread(void *arg) {
     struct fair_fordwarder_thread_args *args = (struct fair_fordwarder_thread_args *) arg;
     pthread_barrier_wait(args->barrier);
     send_subscriber_msg(args->connfd, args->msg);
+    //TODO: check if this is needed
+    //pthread_barrier_wait(args->barrier);
     return NULL;
 }
 void fair_fordwarder(int *connfds, int connfds_size, struct message *msg) {

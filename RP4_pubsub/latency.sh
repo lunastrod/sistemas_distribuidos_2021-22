@@ -8,42 +8,34 @@ make fresh
 killall publisher
 killall subscriber
 killall broker
+killall generate_latency_file.sh
 
-echo "running secuencial 50"
-./generate_latency_file.sh $IP 8080 secuencial 50 $NDATA &
-sleep 0.25
-echo "running secuencial 500"
-./generate_latency_file.sh $IP 8081 secuencial 500 $NDATA &
-sleep 0.25
-echo "running secuencial 900"
-./generate_latency_file.sh $IP 8082 secuencial 900 $NDATA &
-sleep 0.25
+echo "--------------------------------------" >> latency/results_latency.csv
 
-echo "running paralelo 50"
-./generate_latency_file.sh $IP 8083 paralelo 50 $NDATA &
-sleep 0.25
-echo "running paralelo 500"
-./generate_latency_file.sh $IP 8084 paralelo 500 $NDATA &
-sleep 0.25
-echo "running paralelo 900"
-./generate_latency_file.sh $IP 8085 paralelo 900 $NDATA &
-sleep 0.25
+# Define an array of modes (secuencial, paralelo, and justo)
+modes=("secuencial" "paralelo" "justo")
+# Define an array of numbers (50, 500, and 900)
+numbers=(50 500 900)
 
-echo "running justo 50"
-./generate_latency_file.sh $IP 8086 justo 50 $NDATA &
-sleep 0.25
-echo "running justo 500"
-./generate_latency_file.sh $IP 8087 justo 500 $NDATA &
-sleep 0.25
-echo "running justo 900"
-./generate_latency_file.sh $IP 8088 justo 900 $NDATA &
-sleep 0.25
+port=8090
+
+for mode in ${modes[@]}; do
+  # Loop through each number
+  for number in ${numbers[@]}; do
+    # Run the generate_latency_file.sh program with the current mode and number
+    set -x 
+    ./generate_latency_file.sh $IP $port $mode $number $NDATA & >/dev/null
+    { set +x; } 2>/dev/null 
+    ((port++))
+    sleep 0.25
+  done
+done
 
 sleep 2
 
-echo brokers
-ps aux | grep -v grep| grep broker | wc -l > latency/pcount.txt
-echo subscribers
-ps aux | grep -v grep| grep subscriber | wc -l > latency/pcount.txt
-echo publishers
-ps aux | grep -v grep| grep publisher | wc -l > latency/pcount.txt
+echo brokers > latency/pcount.txt
+ps aux | grep -v grep| grep broker | wc -l >> latency/pcount.txt
+echo subscribers >> latency/pcount.txt
+ps aux | grep -v grep| grep subscriber | wc -l >> latency/pcount.txt
+echo publishers >> latency/pcount.txt
+ps aux | grep -v grep| grep publisher | wc -l >> latency/pcount.txt

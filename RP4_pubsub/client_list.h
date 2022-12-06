@@ -19,6 +19,9 @@ struct client_list{
     int pub_counter;
     int sub_counter;
     int id_counter;
+    int readers;
+    pthread_mutex_t client_list_mutex;
+    pthread_mutex_t readers_mutex;
 };
 
 enum client_type{
@@ -32,7 +35,7 @@ void init_client_list(struct client_list *cl);
 int add_client(struct client_list *cl, enum client_type ct, char *topic, int socket);
 void remove_client(struct client_list *cl, enum client_type ct, char *topic, int id);
 int get_subscribers(struct client_list *cl, char *topic, int *connfds);//connfds is an array of SUBSCRIBERS_MAX sockets, returns the number of subscribers
-int get_all_publishers(struct client_list *cl, int *connfds);//connfd is an array of PUBLISHERS_MAX sockets, returns the number of publishers
+//int get_all_publishers(struct client_list *cl, int *connfds);//connfd is an array of PUBLISHERS_MAX sockets, returns the number of publishers
 int get_all_subscribers(struct client_list *cl, int *connfds);//connfd is an array of SUBSCRIBERS_MAX sockets, returns the number of subscribers
 
 //private:

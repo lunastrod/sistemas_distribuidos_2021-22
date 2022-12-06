@@ -2,7 +2,8 @@
 
 /*
 TODO:
-create threads for each publisher and subscriber instead of using poll in the accept thread
+create threads for each subscriber instead of using poll in the accept thread
+remove the get_all_subscribers function
 */
 
 enum operations {
