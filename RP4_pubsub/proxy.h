@@ -3,6 +3,7 @@
 /*
 TODO:
 create threads for each publisher and subscriber instead of using poll in the accept thread
+in fair mode, the threads should get in the barrier and then send, instead of calling 2 functions
 */
 
 enum operations {
