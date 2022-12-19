@@ -39,12 +39,22 @@ sleep 1
 # get the data from the files and save it in 1 file only with the latency data
 rm -f $FILENAME.txt
 for i in $(seq 1 $NUM_SUBSCRIBERS); do
-    cat $FILENAME"_"$i.txt | grep -o "Latencia: [0-9.]*" | sed -E 's/Latencia: ([0-9.]*)./\1/g' >> $FILENAME.txt
+    cat $FILENAME"_"$i.txt | grep -o "Latencia: [0-9.]*" | sed -E 's/Latencia: ([0-9.]*)./\1/g' > $FILENAME"_"$i.txt
 done
 
 
+#for each line in the file (there are NDATA lines)
+for i in $(seq 1 $NDATA); do
+    #for each subscriber
+    for j in $(seq 1 $NUM_SUBSCRIBERS); do
+        cat $FILENAME"_"$j.txt | sed -n "$i p" >> $FILENAME.txt
+    done
+done
+
 
 # append to the results file
-python3 latency_csv.py $FILENAME.txt latency/results_latency.csv $MODE $NUM_SUBSCRIBERS && rm $FILENAME.txt && rm $FILENAME"_"*.txt
+python3 latency_csv.py $FILENAME.txt latency/results_latency.csv $MODE $NUM_SUBSCRIBERS
+#rm $FILENAME.txt
+rm $FILENAME"_"*.txt
 
 exit 0

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 IP="0.0.0.0"
-NDATA=10
+NDATA=100
 
 rm -f latency/latency_*.txt
 make fresh
