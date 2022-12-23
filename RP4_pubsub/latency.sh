@@ -12,14 +12,14 @@ fi
 
 if [ $1 == "generate" ]; then
   ./generate_latency_data.sh $IP 8090 secuencial 50 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 paralelo 50 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 justo 50 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 secuencial 500 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 paralelo 500 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 justo 500 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 secuencial 900 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 paralelo 900 $NDATA & >/dev/null
-  ./generate_latency_data.sh $IP 8090 justo 900 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8091 paralelo 50 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8092 justo 50 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8093 secuencial 500 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8094 paralelo 500 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8095 justo 500 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8096 secuencial 900 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8097 paralelo 900 $NDATA & >/dev/null
+  ./generate_latency_data.sh $IP 8098 justo 900 $NDATA & >/dev/null
   exit 0
 fi
 

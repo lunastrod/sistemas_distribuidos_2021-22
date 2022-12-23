@@ -6,3 +6,7 @@ ctrl+shift+i: beautify
 cd Documents/github_clase/sistemas_distribuidos_2021-22/RP4_pubsub/
 ifconfig eno1 | grep 'inet ' | awk '{print $2}'
 ./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC 2>&1 > $FILENAME"_publisher.txt" &
+
+ssh dparras@f-l3202-pc01.aulas.etsit.urjc.es
+
+./generate_latency_data.sh $IP 8090 secuencial 50 100 & >/dev/null
