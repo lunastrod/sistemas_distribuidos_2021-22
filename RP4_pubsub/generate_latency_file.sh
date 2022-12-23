@@ -1,60 +1,25 @@
 #!/bin/bash
 
-BROKER_IP=$1
-BROKER_PORT=$2
-MODE=$3
-NUM_SUBSCRIBERS=$4
+MODE=$1
+NUM_SUBSCRIBERS=$2
 FILENAME="latency/latency_${MODE}_${NUM_SUBSCRIBERS}"
-NDATA=$5
 
-TOPIC="cpu-usage"
-
-./broker --port $BROKER_PORT --mode $MODE 2>&1 > $FILENAME"_broker.txt" &
-
-
-sleep 1
-# Ejecuta 1 publicador asociado al mismo TOPIC y deja que genere al menos 100
-# datos nuevos para publicar.
-./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC 2>&1 > $FILENAME"_publisher.txt" &
-
-sleep 1
-
-# Ejecuta N suscriptores asociados a un mismo TOPIC. Asegúrate que guardas su
-# salida estándar en un fichero para su posterior análisis. Puedes utilizar el siguiente
-# comando para ejecutar un comando, ver su salida estándar y además guardarla a fichero
-for i in $(seq 1 $NUM_SUBSCRIBERS); do
-    ./subscriber --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC 2>&1 > $FILENAME"_"$i.txt & 
-done
-
-sleep 2
-
-# deja que genere al menos 100 datos nuevos para publicar. (300s)
-# multiply by 3 to get the total time
-sleep $((NDATA*3))
-# kill all child processes
-pkill -P $$
-
-sleep 1
-#cat latency/latency_secuencial_50_50.txt | grep -o "Latencia: [0-9.]*" | sed -E 's/Latencia: ([0-9.]*)./\1/g'
 # get the data from the files and save it in 1 file only with the latency data
-rm -f $FILENAME.txt
+rm -f results/$FILENAME.txt
+echo "generating $FILENAME.txt"
 for i in $(seq 1 $NUM_SUBSCRIBERS); do
-    cat $FILENAME"_"$i.txt | grep -o "Latencia: [0-9.]*" | sed -E 's/Latencia: ([0-9.]*)./\1/g' > $FILENAME"_"$i.txt
+    #[1671798023.952543] Recibido mensaje topic: cpu-usage - mensaje: "cpu load:  1m: 7.32  5m: 2.51  15: 1.48" - Generó: 1671798023.951140 - Recibido: 1671798023.952543 - Latencia: 0.001403.
+    #sed -n 's/.*Latencia: \([0-9.]*\).*Generó: \([0-9.]*\).*/\1 \2/p'
+    #genero=$(cat $FILENAME"_"$i.txt | grep -o 'Generó: [0-9.]*' | grep -o '[0-9.]*')
+    #latencia=$(cat $FILENAME"_"$i.txt | grep -o 'Latencia: [0-9.]*' | grep -o '[0-9.]*')
+    echo "SUBSCRIBER $i" >> results/$FILENAME.txt
+    cat $FILENAME"_"$i.txt | grep 'Latencia: [0-9.]*' | grep -oP 'Generó: \K\d+.\d+|Latencia: \K\d+.\d+' | xargs -n 2 >> results/$FILENAME.txt
+    #echo "$i $genero $latencia" >> results/$FILENAME.txt
+    #cat $FILENAME"_"$i.txt | grep -o "Latencia: [0-9.]*" | sed -E 's/Latencia: ([0-9.]*)./\1/g' > $FILENAME"_"$i.txt
 done
 
-
-#for each line in the file (there are NDATA lines)
-for i in $(seq 1 $NDATA); do
-    #for each subscriber
-    for j in $(seq 1 $NUM_SUBSCRIBERS); do
-        cat $FILENAME"_"$j.txt | sed -n "$i p" >> $FILENAME.txt
-    done
-done
-
-
+echo "generated $FILENAME.txt"
 # append to the results file
-python3 latency_csv.py $FILENAME.txt latency/results_latency.csv $MODE $NUM_SUBSCRIBERS
-#rm $FILENAME.txt
-rm $FILENAME"_"*.txt
+#python3 latency_csv.py $FILENAME.txt latency/results_latency.csv $MODE $NUM_SUBSCRIBERS
 
 exit 0
