@@ -1,11 +1,5 @@
 #include "client_list.h"
 
-/*
-TODO:
-create threads for each subscriber instead of using poll in the accept thread
-remove the get_all_subscribers function
-*/
-
 enum operations {
     REGISTER_PUBLISHER = 0,
     UNREGISTER_PUBLISHER,

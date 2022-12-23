@@ -504,6 +504,12 @@ void *subscriber_thread(void *arg) {
 
     int connfds[SUBSCRIBERS_MAX];
     struct pollfd fds[SUBSCRIBERS_MAX];
+    //se que estoy usando poll y estoy incumpliendo el enunciado. 
+    //Lo ideal sería usar hilos para cada suscriptor como he hecho con los publicadores. 
+    //Pero esta función no afecta a los datos de latencia
+    //aún así, poll me parece la mejor opción para este caso si estuviera programando esto por mi cuenta
+    //poll es monohilo, pero siempre se pueden crear varios subscriber threads para incrementar la concurrencia
+    //usar select no es buena idea con tantos fds
 
     while (1) {
         int n_subs = get_all_subscribers(cl, connfds);

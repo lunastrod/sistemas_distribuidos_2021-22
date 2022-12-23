@@ -1,3 +1,7 @@
 ssh dparras@f-l3203-pc06.aulas.etsit.urjc.es
 
 ctrl+shift+i: beautify
+
+
+cd Documents/github_clase/sistemas_distribuidos_2021-22/RP4_pubsub/
+ifconfig eno1 | grep 'inet ' | awk '{print $2}'
