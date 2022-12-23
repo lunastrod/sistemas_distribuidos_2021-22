@@ -1,6 +1,0 @@
-brokers
-9
-subscribers
-4350
-publishers
-9

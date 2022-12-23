@@ -16,6 +16,8 @@ if [ 0.0.0.0 == $BROKER_IP ]; then
     sleep 1
 fi
 
+killall subscriber
+sleep 4
 # Ejecuta N suscriptores asociados a un mismo TOPIC. Asegúrate que guardas su
 # salida estándar en un fichero para su posterior análisis. Puedes utilizar el siguiente
 # comando para ejecutar un comando, ver su salida estándar y además guardarla a fichero
