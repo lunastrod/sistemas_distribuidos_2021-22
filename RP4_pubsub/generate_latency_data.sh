@@ -9,15 +9,12 @@ NDATA=$5
 
 TOPIC="cpu-usage"
 
-./broker --port $BROKER_PORT --mode $MODE 2>&1 > $FILENAME"_broker.txt" &
-
-
-sleep 1
-# Ejecuta 1 publicador asociado al mismo TOPIC y deja que genere al menos 100
-# datos nuevos para publicar.
-./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC 2>&1 > $FILENAME"_publisher.txt" &
-
-sleep 1
+if [ 0.0.0.0 == $BROKER_IP ]; then
+    ./broker --port $BROKER_PORT --mode $MODE 2>&1 > $FILENAME"_broker.txt" &
+    sleep 1
+    ./publisher --ip $BROKER_IP --port $BROKER_PORT --topic $TOPIC 2>&1 > $FILENAME"_publisher.txt" &
+    sleep 1
+fi
 
 # Ejecuta N suscriptores asociados a un mismo TOPIC. Asegúrate que guardas su
 # salida estándar en un fichero para su posterior análisis. Puedes utilizar el siguiente
